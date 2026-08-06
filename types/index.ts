@@ -1,4 +1,19 @@
-export type WidthType = '1x1' | '2x1' | '1x2' | '2x2' | 'full';
+export type WidthType =
+    | "1x1"
+    | "2x1"
+    | "1x2"
+    | "2x2"
+    | "full"
+    | "1:1"
+    | "3:4"
+    | "4:3"
+    | "2:3"
+    | "3:2"
+    | "9:16"
+    | "16:9"
+    | "5:4"
+    | "4:5"
+    | "21:9";
 
 export interface BlockPosition {
     i: string;
@@ -27,7 +42,8 @@ export interface BlockContent {
         lat: number;
         lng: number;
     };
-    cachedData?: any;
+    cachedData?: CachedSocialData;
+    fetchStatus?: "pending" | "fetching" | "completed" | "failed";
     lastFetchedAt?: Date;
 }
 
@@ -97,4 +113,23 @@ export interface CreateBlockPayload {
         isHighlighted?: boolean;
     };
     position: BlockPosition;
+}
+
+export interface CachedSocialData {
+    platform: string;
+
+    profile?: {
+        displayName?: string;
+        username?: string;
+        title?: string;
+        description?: string;
+        avatar?: string;
+        favicon?: string;
+        preview?: string;
+        url?: string;
+    };
+
+    items?: any[];
+
+    fetchedAt?: string;
 }

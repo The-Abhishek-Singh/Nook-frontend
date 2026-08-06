@@ -1,10 +1,11 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Instagram, Linkedin, Github, Twitter, Dribbble, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { authApi } from '@/utils/api';
+import { GoogleLogin } from "@react-oauth/google";
 
 export default function LoginPage() {
     const router = useRouter();
@@ -12,13 +13,27 @@ export default function LoginPage() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
+    const [isRightHovered, setIsRightHovered] = useState(false);
 
     useEffect(() => {
+    const checkAuth = async () => {
         const token = localStorage.getItem("token");
-        if (token) {
-            router.push('/');
+
+        if (!token || token === "undefined") {
+            return;
         }
-    }, [router]);
+
+        try {
+            await authApi.getMe();
+            router.replace("/");
+        } catch {
+            localStorage.removeItem("token");
+            localStorage.removeItem("refreshToken");
+        }
+    };
+
+    checkAuth();
+}, [router]);
 
     const isTyping = email.length > 0 || password.length > 0;
 
@@ -28,10 +43,12 @@ export default function LoginPage() {
 
         setLoading(true);
         try {
-            const res = await authApi.login(email, password);
-            localStorage.setItem("token", res.data.token);
-            localStorage.setItem("getnook_step", "3");
-            router.push('/');
+             const res = await authApi.login(email, password);
+             localStorage.setItem("token", res.data.accessToken);
+             localStorage.setItem("refreshToken", res.data.refreshToken);
+             localStorage.setItem("getnook_step", "3");
+
+             router.push("/");
         } catch (err: any) {
             alert(err.response?.data?.message || "Invalid email or password");
         } finally {
@@ -39,14 +56,12 @@ export default function LoginPage() {
         }
     };
 
-    const handleGoogleSignIn = () => {
-        alert("Google Sign-in clicked.");
-    };
+    
 
     return (
         <main className="min-h-screen bg-white flex flex-col md:flex-row items-center justify-center px-6 md:px-20 gap-12 lg:gap-24 overflow-hidden font-sans">
 
-            {/* LEFT SECTION: Login Form */}
+            {/* LEFT SECTION: Login Form (Untouched) */}
             <motion.div
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -96,20 +111,35 @@ export default function LoginPage() {
 
                         <AnimatePresence mode="wait">
                             {!isTyping ? (
-                                <motion.button
-                                    key="google-login"
-                                    type="button"
-                                    onClick={handleGoogleSignIn}
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: -10 }}
-                                    className="w-full bg-[#1da1f2] hover:bg-blue-500 text-white font-bold py-5 px-6 rounded-[2rem] flex items-center justify-center gap-3 transition-all shadow-lg shadow-blue-100"
-                                >
-                                    <div className="bg-white p-0.5 rounded-full">
-                                        <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#1da1f2" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" /><path fill="#1da1f2" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" /><path fill="#1da1f2" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" /><path fill="#1da1f2" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" /></svg>
-                                    </div>
-                                    Sign in with Google
-                                </motion.button>
+                        
+                            <GoogleLogin
+                                theme="filled_blue"
+                                shape="pill"
+                                size="large"
+                                width="100%"
+                                onSuccess={async (credentialResponse) => {
+                                    try {
+                                        if (!credentialResponse.credential) {
+                                            throw new Error("No Google credential received");
+                                        }
+                            
+                                        const res = await authApi.oauthSync({
+                                            credential: credentialResponse.credential,
+                                        });
+
+                                localStorage.setItem("token", res.data.accessToken);
+                                localStorage.setItem("refreshToken", res.data.refreshToken);
+
+                                router.push("/");
+                            } catch (err: any) {
+                                console.error(err);
+                                alert(err.response?.data?.message || "Google login failed");
+                              }
+                          }}
+                          onError={() => {
+                              alert("Google Sign-In failed");
+                          }}
+                      />
                             ) : (
                                 <motion.button
                                     key="black-login"
@@ -132,40 +162,196 @@ export default function LoginPage() {
                 </p>
             </motion.div>
 
-            {/* RIGHT BENTO COLLAGE: Keeping your exact UI and animations */}
+            {/* RIGHT BENTO COLLAGE WITH BALANCED RIGHT-SHIFTED SCATTER */}
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="w-full md:w-[50%] grid grid-cols-10 gap-4 max-w-2xl aspect-square relative p-10"
+                onMouseEnter={() => setIsRightHovered(true)}
+                onMouseLeave={() => setIsRightHovered(false)}
+                className="w-full md:w-[54%] grid grid-cols-4 gap-4 max-w-[46rem] p-6 cursor-pointer translate-x-8 md:translate-x-12"
             >
-                <div className="col-span-6 row-span-6 rounded-[2.5rem] overflow-hidden shadow-md border-2 border-gray-100">
-                    <img src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=400" className="w-full h-full object-cover" alt="3D Artwork" />
-                </div>
-                <div className="col-span-2 row-span-3 bg-[#f0f4ff] p-4 rounded-[2rem] flex flex-col items-center justify-center border border-blue-50/50">
-                    <div className="w-8 h-8 bg-[#0057ff] rounded-lg flex items-center justify-center text-white mb-2 shadow-sm"><span className="text-[10px] font-bold">Bē</span></div>
-                    <button className="bg-[#0057ff] text-white text-[8px] px-3 py-1 rounded-full font-bold">Follow</button>
-                </div>
-                <div className="col-span-2 row-span-3 bg-[#f0f4ff] p-4 rounded-[2rem] flex flex-col items-center justify-center border border-blue-50/50">
-                    <Linkedin size={20} className="text-[#0077b5] mb-2" />
-                    <button className="border border-gray-300 text-gray-700 text-[8px] px-3 py-1 rounded-full font-bold bg-white">Connect</button>
-                </div>
-                <div className="col-span-4 row-span-4 bg-[#fff1f5] p-5 rounded-[2.5rem] border border-pink-100">
-                    <div className="flex justify-between items-center mb-4"><Dribbble size={16} className="text-[#ea4c89]" /><button className="bg-[#ea4c89] text-white text-[7px] px-2 py-0.5 rounded font-bold uppercase">Hire</button></div>
-                    <div className="grid grid-cols-2 gap-2">{[1, 2, 3, 4].map((i) => (<div key={i} className="aspect-square bg-white rounded-xl shadow-sm border border-pink-50/50" />))}</div>
-                </div>
-                <div className="col-span-3 row-span-3 bg-[#f4faff] p-5 rounded-[2.5rem] flex flex-col items-center justify-center border border-blue-50">
-                    <Twitter size={22} className="text-[#1DA1F2] mb-1" /><span className="text-[9px] text-gray-400 font-bold mb-3 uppercase tracking-tighter">Twitter</span>
-                    <button className="bg-[#1DA1F2] text-white text-[9px] px-4 py-1.5 rounded-full font-bold shadow-md">Follow</button>
-                </div>
-                <div className="col-span-3 row-span-3 bg-white p-4 rounded-[2.5rem] shadow-lg border border-gray-100 flex flex-col justify-center">
-                    <div className="flex items-center gap-2 mb-2"><div className="w-5 h-5 bg-gradient-to-tr from-yellow-400 to-purple-600 rounded-md flex items-center justify-center text-white"><Instagram size={12} /></div><span className="text-[10px] font-bold text-gray-800">Instagram</span></div>
-                    <div className="grid grid-cols-2 gap-1 overflow-hidden rounded-lg mb-2">{[1, 2, 3, 4].map((i) => (<div key={i} className="h-6 bg-gray-50 border border-gray-100 rounded-sm" />))}</div>
-                    <button className="w-full bg-[#0095f6] text-white text-[8px] py-1 rounded-md font-bold">12k</button>
-                </div>
-                <div className="col-span-4 row-span-3 bg-gray-50/50 p-4 rounded-[2.5rem] border border-gray-100">
-                    <div className="flex items-center gap-2 mb-2"><Github size={12} className="text-gray-900" /><span className="text-[10px] font-bold">Github</span></div>
-                    <div className="grid grid-cols-7 gap-1">{Array.from({ length: 21 }).map((_, i) => (<div key={i} className={`w-full aspect-square rounded-[1px] ${i % 3 === 0 ? 'bg-green-500' : 'bg-gray-200'}`} />))}</div>
-                </div>
+                {/* 1. Large 3D Artwork Tile (Top Left) */}
+                <motion.div 
+                    animate={isRightHovered ? { x: -25, y: -30, rotate: -8, scale: 1.03 } : { x: 0, y: 0, rotate: 0, scale: 1 }}
+                    transition={{ type: "spring", stiffness: 220, damping: 18 }}
+                    className="col-span-2 row-span-2 rounded-[1.75rem] overflow-hidden shadow-sm aspect-square bg-gray-100 z-10"
+                >
+                    <img src="/assets/photo1.png" className="w-full h-full object-cover" alt="3D Artwork" />
+                </motion.div>
+
+                {/* 2. Behance Tile */}
+                <motion.div 
+                    animate={isRightHovered ? { x: 25, y: -35, rotate: 10, scale: 1.05 } : { x: 0, y: 0, rotate: 0, scale: 1 }}
+                    transition={{ type: "spring", stiffness: 240, damping: 16 }}
+                    className="col-span-1 row-span-1 bg-[#f0f4ff] p-4 rounded-[1.25rem] flex flex-col items-start justify-between border border-blue-50/50 aspect-square z-20"
+                >
+                    <div className="flex flex-col items-start gap-1">
+                        <div className="w-10 h-10 bg-[#0057ff] rounded-xl flex items-center justify-center text-white shadow-sm">
+                            <span className="text-[10px] font-bold ">Bē</span>
+                        </div>
+                        <span className="text-[10px] font-bold text-gray-900 mt-1">Behance</span>
+                    </div>
+                    <button className="bg-[#0057ff] hover:bg-blue-600 text-white text-[9px] px-3 py-2 rounded-full font-bold transition-all">
+                        Follow 6.5k
+                    </button>
+                </motion.div>
+
+                {/* 3. LinkedIn Tile */}
+                <motion.div 
+                    animate={isRightHovered ? { x: 35, y: -20, rotate: 15, scale: 1.05 } : { x: 0, y: 0, rotate: 0, scale: 1 }}
+                    transition={{ type: "spring", stiffness: 250, damping: 17 }}
+                    className="col-span-1 row-span-1 bg-[#f0f4ff] p-4 rounded-[1.25rem] flex flex-col items-start justify-between border border-blue-50/50 aspect-square z-30"
+                >
+                    <div className="flex flex-col items-start gap-1">
+                        <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm">
+                            <img src="/assets/linkedin.svg" alt="LinkedIn" className="w-full h-full object-contain" />
+                        </div>
+                        <span className="text-[10px] font-bold text-gray-900 mt-1">LinkedIn</span>
+                    </div>
+                    <button className="border border-blue-300 text-gray-700 text-[9px] px-4 py-2 rounded-full font-bold bg-white hover:bg-gray-50 transition-all">
+                        Connect
+                    </button>
+                </motion.div>
+
+                {/* 4. Dribbble App Grid Tile */}
+                <motion.div 
+                    animate={isRightHovered ? { x: -15, y: 15, rotate: -5, scale: 1.02 } : { x: 0, y: 0, rotate: 0, scale: 1 }}
+                    transition={{ type: "spring", stiffness: 200, damping: 19 }}
+                    className="col-span-2 row-span-2 bg-[#fff5f7] p-6 py-7 rounded-[1.75rem] border border-pink-100 flex flex-col justify-between shadow-sm min-h-[280px] z-10"
+                >
+                    <div className="flex justify-between items-center">
+                        <div className="flex flex-col items-start gap-1">
+                            <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm ">
+                                <img src="/assets/dribble.svg" alt="Dribbble" className="w-full h-full object-contain" />
+                            </div>
+                            <span className="text-xs font-semibold text-gray-900">Dribbble</span>
+                        </div>
+                        <button className="bg-[#ea4c89] hover:bg-[#d43f78] text-white text-[12px] px-3 py-2 rounded-md font-bold flex items-center gap-1 shadow-sm">
+                            ✉️ Hire Me
+                        </button>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 my-3">
+                        <div className="bg-white p-1 rounded-2xl shadow-sm border border-pink-50 aspect-square flex items-center justify-center overflow-hidden">
+                            <img src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=200" className="w-full h-full object-cover rounded-xl" alt="App Icon 1" />
+                        </div>
+                        <div className="bg-white p-1 rounded-2xl shadow-sm border border-pink-50 aspect-square flex items-center justify-center overflow-hidden">
+                            <img src="https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&q=80&w=200" className="w-full h-full object-cover rounded-xl" alt="App Icon 2" />
+                        </div>
+                        <div className="bg-white p-1 rounded-2xl shadow-sm border border-pink-50 aspect-square flex items-center justify-center overflow-hidden">
+                            <img src="https://images.unsplash.com/photo-1634017839464-5c339ebe3cb4?auto=format&fit=crop&q=80&w=200" className="w-full h-full object-cover rounded-xl" alt="App Icon 3" />
+                        </div>
+                        <div className="bg-white p-1 rounded-2xl shadow-sm border border-pink-50 aspect-square flex items-center justify-center overflow-hidden">
+                            <img src="https://images.unsplash.com/photo-1558655146-d09347e92766?auto=format&fit=crop&q=80&w=200" className="w-full h-full object-cover rounded-xl" alt="App Icon 4" />
+                        </div>
+                        <div className="bg-white p-1 rounded-2xl shadow-sm border border-pink-50 aspect-square flex items-center justify-center overflow-hidden">
+                            <img src="https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?auto=format&fit=crop&q=80&w=200" className="w-full h-full object-cover rounded-xl" alt="App Icon 5" />
+                        </div>
+                        <div className="bg-white p-1 rounded-2xl shadow-sm border border-pink-50 aspect-square flex items-center justify-center overflow-hidden">
+                            <img src="https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=200" className="w-full h-full object-cover rounded-xl" alt="App Icon 6" />
+                        </div>
+                    </div>
+                </motion.div>
+
+                {/* 5. iOS UI Kit Tile */}
+                <motion.div 
+                    animate={isRightHovered ? { x: 20, y: 25, rotate: 8, scale: 1.05 } : { x: 0, y: 0, rotate: 0, scale: 1 }}
+                    transition={{ type: "spring", stiffness: 230, damping: 18 }}
+                    className="col-span-1 row-span-1 bg-white p-5 rounded-[1.25rem] border border-gray-100 flex flex-col justify-between shadow-sm aspect-square z-20"
+                >
+                    <div className="flex flex-col items-start gap-1">
+                        <div className="w-10 h-10 bg-black rounded-lg flex items-center justify-center text-white">
+                            <span className="text-[10px]">🎨</span>
+                        </div>
+                        <span className="text-[10px] font-bold text-gray-800">iOS UI Kit</span>
+                    </div>
+                    <div className="flex justify-between items-center mt-2">
+                        <button className="text-[9px] text-gray-400 font-bold">❤️ 3.9k</button>
+                        <button className="text-[9px] text-blue-500 font-bold">📥 3.9k</button>
+                    </div>
+                </motion.div>
+
+                {/* 6. Instagram Tile */}
+                <motion.div 
+                    animate={isRightHovered ? { x: 30, y: -10, rotate: -10, scale: 1.04 } : { x: 0, y: 0, rotate: 0, scale: 1 }}
+                    transition={{ type: "spring", stiffness: 210, damping: 17 }}
+                    className="col-span-1 row-span-2 bg-white p-4 rounded-[0.75rem] border border-gray-100 shadow-sm flex flex-col items-start justify-between z-30"
+                >
+                    <div className="w-full">
+                        <div className="w-10 h-10 rounded-md flex items-center justify-center mb-1.5">
+                            <img src="/assets/instagram.svg" alt="Instagram" className="w-full h-full object-contain" />
+                        </div>
+                        <span className="text-[10px] font-bold text-gray-800 block mb-8">Instagram</span>
+                        <div className="grid grid-cols-2 gap-1 overflow-hidden rounded-xl">
+                            <img src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=100" className="w-full h-15 object-cover rounded-md" alt="ig 1" />
+                            <img src="https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&q=80&w=100" className="w-full h-15 object-cover rounded-md" alt="ig 2" />
+                            <img src="https://images.unsplash.com/photo-1513364776144-60967b0f800f?auto=format&fit=crop&q=80&w=100" className="w-full h-15 object-cover rounded-md" alt="ig 3" />
+                            <img src="https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&q=80&w=100" className="w-full h-15 object-cover rounded-md" alt="ig 4" />
+                        </div>
+                    </div>
+                    <button className="w-full bg-[#0095f6] hover:bg-blue-600 text-white text-[9px] py-2 rounded-md font-bold transition-all mt-2">
+                        Follow 12k
+                    </button>
+                </motion.div>
+
+                {/* 7. Twitter Tile */}
+                <motion.div 
+                    animate={isRightHovered ? { x: -25, y: 30, rotate: 10, scale: 1.05 } : { x: 0, y: 0, rotate: 0, scale: 1 }}
+                    transition={{ type: "spring", stiffness: 220, damping: 16 }}
+                    className="col-span-1 row-span-1 bg-[#f4faff] p-5 rounded-[1.25rem] flex flex-col items-start justify-between border border-blue-50 shadow-sm min-h-[135px] z-20"
+                >
+                    <div className="flex flex-col items-start gap-1">
+                        <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center shadow-sm">
+                            <img src="/assets/twitter.svg" alt="Twitter" className="w-full h-full object-contain" />
+                        </div>
+                        <span className="text-[10px] font-bold text-gray-800">Twitter</span>
+                    </div>
+                    <button className="w-full bg-[#1DA1F2] hover:bg-blue-400 text-white text-[9px] py-2 rounded-full font-bold shadow-sm transition-all mt-3">
+                        Follow 12k
+                    </button>
+                </motion.div>
+
+                {/* 8. Github Contribution Tile */}
+                <motion.div 
+                    animate={isRightHovered ? { x: 25, y: 35, rotate: -6, scale: 1.03 } : { x: 0, y: 0, rotate: 0, scale: 1 }}
+                    transition={{ type: "spring", stiffness: 190, damping: 18 }}
+                    className="col-span-2 row-span-1 bg-white p-5 px-6 rounded-[1.75rem] border border-gray-100 shadow-sm flex items-center justify-between z-20"
+                >
+                    <div className="flex flex-col justify-between h-full py-0.5">
+                        <div className="flex flex-col items-start gap-1">
+                            <div className="w-10 h-10 bg-black rounded-xl flex items-center justify-center shadow-sm">
+                                <img src="/assets/github.svg" alt="Github" className="w-full h-full object-contain" />
+                            </div>
+                            <span className="text-xs font-bold text-gray-900 mt-1">Github</span>
+                        </div>
+                        <button className="border border-gray-200 text-gray-700 text-xs px-5 py-1.5 rounded-md font-bold bg-white hover:bg-gray-50 transition-all shadow-sm mt-4">
+                            Follow
+                        </button>
+                    </div>
+
+                    <div className="grid grid-rows-6 grid-flow-col gap-2 p-2">
+                        {[
+                            0, 1, 0, 2, 0, 0, 0, 0, 1, 2,
+                            2, 2, 3, 2, 1, 0, 2, 0, 0, 1,
+                            0, 0, 2, 2, 2, 2, 0, 0, 3, 0,
+                            0, 0, 0, 0, 2, 2, 3, 0, 1, 2,
+                            3, 2, 3, 0, 2, 0, 0, 2
+                            
+                        ].map((level, i) => {
+                            const bgColors = {
+                                0: "bg-gray-100",
+                                1: "bg-green-200",
+                                2: "bg-green-400",
+                                3: "bg-green-700"
+                            };
+                            return (
+                                <div 
+                                    key={i} 
+                                    className={`w-3.5 h-3.5 rounded-[3px] ${bgColors[level as keyof typeof bgColors]}`} 
+                                />
+                            );
+                        })}
+                    </div>
+                </motion.div>
             </motion.div>
         </main>
     );

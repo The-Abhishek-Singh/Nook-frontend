@@ -1,37 +1,111 @@
-"use client";
 
+
+"use client";
 import React, { useCallback, useRef, useEffect, useState } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Trash2, MapPin, Quote, Link2, GripVertical } from 'lucide-react';
+import { Trash2, MapPin, Quote, Link2, GripVertical, ChevronLeft, ChevronRight } from 'lucide-react';
 import IconRenderer from './IconRenderer';
 import LiveMap from './LiveMap';
 import { UISocialItem, WidthType, BlockContent } from '@/types';
+import InstagramLargeCard from "../InstagramLargeCard";
+import GithubLargeCard from '../GithubLargeCard';
+import { PLATFORM_LOGOS } from '@/utils/platformLogos';
 
 const laptopRatios: Record<WidthType, string> = {
-    '1x1': 'w-[208px] h-[208px]',
-    '2x1': 'w-[448px] h-[208px]',
-    '1x2': 'w-[208px] h-[448px]',
-    '2x2': 'w-[448px] h-[448px]',
-    'full': 'w-full min-h-[70px]'
+    "1x1": "w-[208px] h-[208px]",
+    "2x1": "w-[440px] h-[208px]",
+    "1x2": "w-[208px] h-[440px]",
+    "2x2": "w-[440px] h-[440px]",
+    "full": "w-full min-h-[70px]",
+
+    "1:1": "w-[208px] h-[208px]",
+    "3:4": "w-[208px] h-[278px]",
+    "4:3": "w-[278px] h-[208px]",
+    "2:3": "w-[208px] h-[312px]",
+    "3:2": "w-[312px] h-[208px]",
+    "9:16": "w-[208px] h-[370px]",
+    "16:9": "w-[370px] h-[208px]",
+    "5:4": "w-[260px] h-[208px]",
+    "4:5": "w-[208px] h-[260px]",
+    "21:9": "w-[440px] h-[208px]"
 };
+
 
 const mobileRatios: Record<WidthType, string> = {
-    '1x1': 'w-[160px] h-[160px]',
-    '2x1': 'w-[352px] h-[160px]',
-    '1x2': 'w-[160px] h-[352px]',
-    '2x2': 'w-[352px] h-[352px]', // FIX: Changed from 160px to 352px to make it a square
-    'full': 'w-full min-h-[60px]'
+    "1x1": "w-[160px] h-[160px]",
+    "2x1": "w-[344px] h-[160px]",
+    "1x2": "w-[160px] h-[344px]",
+    "2x2": "w-[344px] h-[344px]",
+    "full": "w-full min-h-[60px]",
+
+    "1:1": "w-[160px] h-[160px]",
+    "3:4": "w-[160px] h-[214px]",
+    "4:3": "w-[214px] h-[160px]",
+    "2:3": "w-[160px] h-[240px]",
+    "3:2": "w-[240px] h-[160px]",
+    "9:16": "w-[160px] h-[284px]",
+    "16:9": "w-[284px] h-[160px]",
+    "5:4": "w-[200px] h-[160px]",
+    "4:5": "w-[160px] h-[260px]",
+    "21:9": "w-[344px] h-[160px]"
 };
 
-const getGridSpan = (width: WidthType): string => {
+
+
+// const getGridSpan = (width: WidthType, type?: String): string => {
+//     if (type === 'heading') return 'col-span-full w-full';
+//     switch (width) {
+//         case '1x1':
+//         case '1:1': 
+//             return 'col-span-1 row-span-1';
+//         case '2x1':
+//         case '3:2': 
+//         case '21:9':
+//         case '16:9':
+//         case '5:4':
+//             return 'col-span-2 row-span-1';
+//         case '1x2':
+//         case '3:4':
+//         case '2:3':
+//         case '9:16':
+//         case '4:5':
+//             return 'col-span-1 row-span-2';
+//         case '2x2':
+//         case '4:3':
+//             return 'col-span-2 row-span-2';
+//         case 'full': 
+//             return 'col-span-full';
+//         default: 
+//             return 'col-span-1 row-span-1';
+//     }
+// };
+
+const getGridSpan = (width: WidthType, type?: String): string => {
+    if (type === 'heading') return 'col-span-full w-full';
     switch (width) {
-        case '1x1': return 'col-span-1 row-span-1';
-        case '2x1': return 'col-span-2 row-span-1';
-        case '1x2': return 'col-span-1 row-span-2';
-        case '2x2': return 'col-span-2 row-span-2';
-        case 'full': return 'col-span-full';
-        default: return 'col-span-1 row-span-1';
+        case '1x1':
+        case '1:1': 
+            return 'col-span-1 row-span-1';
+        case '2x1':
+        case '3:2': 
+        case '4:3':    // Changed from 2x2 to 2x1 so it fits a single row height cleanly
+        case '5:4':
+        case '16:9':
+        case '21:9':
+            return 'col-span-2 row-span-1';
+        case '1x2':
+        case '3:4':
+        case '2:3':
+        case '4:5':
+        case '9:16':
+            return 'col-span-1 row-span-2';
+        case '2x2': 
+            return 'col-span-2 row-span-2';
+        case 'full': 
+            return 'col-span-full w-full';
+        default: 
+            return 'col-span-1 row-span-1';
     }
 };
 
@@ -49,6 +123,19 @@ const SortableSocialCard = ({ item, removeItem, changeRatio, updateItem, viewMod
     const ratioClasses = viewMode === 'mobile' ? mobileRatios : laptopRatios;
     const style = { transform: CSS.Translate.toString(transform), transition, zIndex: isDragging ? 50 : 1 };
     const [imgError, setImgError] = useState(false);
+    const [page, setPage] = useState(0);
+    
+    const platformLower = item.platform?.toLowerCase() || "";
+    const isRestrictedPlatform = platformLower === "linkedin" || platformLower === "spotify";
+
+    const pages: WidthType[][] = isRestrictedPlatform
+        ? [["1x1", "1x2", "2x1"]]
+        : [
+            ["1x1", "2x1", "1x2", "2x2"],
+            ["1:1", "3:4", "4:3", "2:3"],
+            ["3:2", "9:16", "16:9", "5:4"],
+            ["4:5", "21:9"]
+          ];
 
     const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
     const pendingUpdateRef = useRef<{ id: string; data: any } | null>(null);
@@ -108,24 +195,37 @@ const SortableSocialCard = ({ item, removeItem, changeRatio, updateItem, viewMod
     const isLink = item.type === 'link';
     const isSocial = item.type === 'social';
 
-    let logoUrl = item.logo || item.content?.logo || item.image || item.content?.imageUrl || '';
+    const cachedData = item.content?.cachedData;
+    const profile = cachedData?.profile;
+    const fetchedItems = cachedData?.items || [];
+    const fetchStatus = item.content?.fetchStatus;
+
+    const platformKey = item.platform?.toLowerCase();
+    let logoUrl = (platformKey && PLATFORM_LOGOS[platformKey]) || item.logo || item.content?.logo || item.image || item.content?.imageUrl || '';
+    if ((item.platform?.toLowerCase() === "website" || item.platform?.toLowerCase() === "linkedin") && profile?.favicon) {
+        logoUrl = profile.favicon;
+    }
     const clickUrl = (item.url || item.content?.url || '').toString().replace(/\\/g, '');
+    if (logoUrl && (logoUrl === clickUrl || logoUrl.includes('linkedin.com') && !logoUrl.includes('s2/favicons'))) {
+        logoUrl = '';
+    }
 
     if (!logoUrl && clickUrl) {
         const domain = getDomain(clickUrl);
         if (domain) {
-            logoUrl = `https://logo.clearbit.com/${domain}`;
+            logoUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=128`;
         }
     }
 
-    let displayTitle = item.title || item.content?.title || item.platform || (isLink ? "Link" : (isSocial ? "Social Link" : "Link"));
-    let displayHandle = item.handle || item.content?.handle || (clickUrl ? getDomain(clickUrl) : "view link");
+    let displayTitle = profile?.displayName || profile?.title || item.title || item.content?.title || item.platform || (isLink ? "Link" : (isSocial ? "Social Link" : "Link"));
+    let displayHandle = profile?.username || item.handle || item.content?.handle || (clickUrl ? getDomain(clickUrl) : "view link");
+    const subtitle = profile?.username ? `@${profile.username}` : displayHandle;
 
     const handleImageError = () => {
         if (!imgError && clickUrl) {
             const domain = getDomain(clickUrl);
             if (domain && !logoUrl.includes('clearbit.com')) {
-                const fallbackUrl = `https://logo.clearbit.com/${domain}`;
+                const fallbackUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=128`;
                 setImgError(false);
                 updateItem(item.id, { logo: fallbackUrl });
             } else {
@@ -137,8 +237,8 @@ const SortableSocialCard = ({ item, removeItem, changeRatio, updateItem, viewMod
     };
 
     return (
-        <div ref={setNodeRef} style={style} className={`${getGridSpan(item.width)} ${item.width === 'full' || isHeading ? 'col-span-full w-full' : ''}`}>
-            <div className={`relative group w-full h-full ${isDragging && !isOverlay ? 'opacity-0' : 'opacity-100'}`}>
+        <div ref={setNodeRef} style={style} className={`${getGridSpan(item.width, item.type)} ${isHeading ? 'col-span-full w-full' : `${ratioClasses[item.width]} max-w-none`} relative group`}>
+            <div className={`w-full h-full ${isDragging && !isOverlay ? 'opacity-0' : 'opacity-100'}`}>
 
                 {!isOverlay && (
                     <div
@@ -158,26 +258,26 @@ const SortableSocialCard = ({ item, removeItem, changeRatio, updateItem, viewMod
                         <Trash2 size={18} />
                     </button>
                 )}
+                
                 <div
                     onClick={() => !isDragging && (isLink || isSocial) && clickUrl && window.open(clickUrl, '_blank')}
-                    className={`relative transition-all duration-300 cursor-pointer ${isHeading ? 'w-full h-[70px]' : ratioClasses[item.width]} ${isOverlay ? 'shadow-2xl ring-4 ring-blue-500/20 scale-105' : ''} 
+                    className={`relative transition-all duration-300 cursor-pointer ${isHeading ? 'w-full' : ratioClasses[item.width]} ${isOverlay ? 'shadow-2xl ring-4 ring-blue-500/20 scale-105' : ''} 
                     ${isQuote || isText ? 'bg-white rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col p-4' :
-                            isHeading ? 'bg-white rounded-[1.5rem] shadow-sm border border-gray-100 flex items-center px-4' :
+                            isHeading ? 'w-full' :
                                 item.type === 'map' ? 'bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden' :
-                                    'bg-white rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col overflow-hidden'}`}>
-
-                    {isHeading ? (
-                        <div className="w-full flex items-center relative gap-3 h-full">
-                            <div className="min-w-[160px] max-w-fit bg-[#F5F5F7] rounded-xl px-4 py-2.5 z-40">
-                                <input
-                                    className="w-full bg-transparent border-none outline-none font-bold text-gray-800 placeholder:text-[#9fb3d0] text-lg"
-                                    placeholder="Add Heading..."
-                                    value={item.title || ""}
-                                    onChange={(e) => handleContentChange(e.target.value, 'title')}
-                                />
-                            </div>
-                            <div className="flex-1 h-[1px] bg-gray-100 mr-2" />
-                        </div>
+                                    'bg-white rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col overflow-hidden'}`}
+                >
+                             {isHeading ? (
+                                  <div className="w-full flex items-center relative h-full px-4 py-3">
+                 <div className="flex-1 h-full bg-[#F5F5F7] rounded-xl px-4 py-2.5 flex items-center z-40">
+                     <input
+                         className="w-full bg-transparent border-none outline-none font-bold text-gray-800 placeholder:text-[#9fb3d0] text-lg"
+                         placeholder="Add Heading..."
+                         value={item.title || ""}
+                         onChange={(e) => handleContentChange(e.target.value, 'title')}
+                     />
+                 </div>
+                </div>
                     ) : isQuote ? (
                         <div className="w-full h-full flex flex-col relative">
                             <div className="w-full h-full bg-[#F5F5F7] rounded-[1.5rem] p-5 flex flex-col overflow-hidden">
@@ -219,9 +319,39 @@ const SortableSocialCard = ({ item, removeItem, changeRatio, updateItem, viewMod
                             </div>
                         </div>
                     ) : item.type === 'image' ? (
-                        <div className="w-full h-full relative group">
-                            <img src={item.image} className="w-full h-full object-cover pointer-events-none" alt="Content" />
+                        <div className="w-full h-full flex items-center justify-center overflow-hidden">
+                            <div className="overflow-hidden rounded-[inherit] bg-gray-100 w-full h-full">
+                                <img
+                                    src={item.image}
+                                    className="w-full h-full object-cover pointer-events-none"
+                                    alt="Content"
+                                />
+                            </div>
                         </div>
+                    // ) : isSocial && fetchStatus === 'fetching' ? (
+                    //    <div className="w-full h-full flex flex-col items-center justify-center gap-3 p-4 text-center">
+                    //        <div className="w-8 h-8 border-2 border-gray-200 border-t-gray-800 rounded-full animate-spin" />
+                    //        <p className="text-[11px] text-gray-400 font-bold uppercase tracking-tight">
+                    //            Fetching {item.platform || "data"}...
+                    //        </p>
+                    //    </div>
+
+                    ) : (item.platform?.toLowerCase() === "instagram" || item.platform?.toLowerCase() === "twitter") && fetchedItems.length > 0 ? (
+                        <InstagramLargeCard
+                            item={item}
+                            profile={profile || item.content?.cachedData?.profile}
+                            fetchedItems={fetchedItems || item.content?.cachedData?.items}
+                            logoUrl={logoUrl}
+                            subtitle={subtitle}
+                        />
+                    ) : item.platform?.toLowerCase() === "github" && fetchedItems.length > 0 ? (
+                        <GithubLargeCard
+                            item={item}
+                            profile={profile}
+                            fetchedItems={fetchedItems}
+                            logoUrl={logoUrl}
+                            subtitle={subtitle}
+                        />
                     ) : (
                         <div className="w-full h-full flex flex-col relative">
                             <div className="flex-1 flex flex-col items-center justify-center p-4 text-center gap-3">
@@ -229,7 +359,7 @@ const SortableSocialCard = ({ item, removeItem, changeRatio, updateItem, viewMod
                                     <div className="w-16 h-16 rounded-2xl overflow-hidden shadow-sm border border-gray-100 bg-white flex items-center justify-center">
                                         <img
                                             src={logoUrl.toString().replace(/\\/g, '')}
-                                            className="w-full h-full object-cover"
+                                            className="w-full h-full object-cover scale-120"
                                             alt={displayTitle}
                                             onError={handleImageError}
                                         />
@@ -248,7 +378,7 @@ const SortableSocialCard = ({ item, removeItem, changeRatio, updateItem, viewMod
                                         {displayTitle}
                                     </h3>
                                     <p className="text-[11px] text-gray-400 font-bold truncate max-w-[150px] mx-auto uppercase">
-                                        {displayHandle}
+                                        {subtitle}
                                     </p>
                                 </div>
                             </div>
@@ -257,19 +387,75 @@ const SortableSocialCard = ({ item, removeItem, changeRatio, updateItem, viewMod
                 </div>
 
                 {!isOverlay && item.width !== 'full' && !isHeading && !isQuote && !isText && (
-                    <div className="absolute -bottom-5 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all flex items-center bg-[#050505] p-1.5 rounded-2xl gap-1 shadow-2xl z-40 border border-white/10">
-                        {(['1x1', '2x1', '1x2', '2x2'] as WidthType[]).map((r) => (
+                    <div className="absolute bottom-2 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all flex items-center bg-black/60 backdrop-blur-md p-1 rounded-2xl gap-1 shadow-xl z-40 border border-white/10">
+                        {page > 0 && (
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setPage((p) => p - 1);
+                                }}
+                                className="p-1 rounded-xl text-white hover:bg-white/10 transition-colors"
+                            >
+                                <ChevronLeft size={14} />
+                            </button>
+                        )}
+
+                        {pages[page].map((r) => (
                             <button
                                 key={r}
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     changeRatio(item.id, r);
                                 }}
-                                className={`p-2 rounded-xl transition-colors ${item.width === r ? 'bg-white text-black' : 'text-white hover:bg-white/10'}`}
+                                className={`p-2 rounded-xl transition-colors ${
+                                    item.width === r
+                                        ? "bg-white text-black shadow-md"
+                                        : "text-white hover:bg-white/10"
+                                }`}
                             >
-                                <div className={`border-2 border-current rounded-sm ${r === '1x1' ? 'w-3.5 h-3.5' : r === '2x1' ? 'w-5 h-2.5' : r === '1x2' ? 'w-2.5 h-5' : 'w-4.5 h-4.5'}`} />
+                                <div
+                                    className={`border-2 border-current rounded-sm ${
+                                        r === "1x1"
+                                            ? "w-3.5 h-3.5"
+                                            : r === "2x1"
+                                            ? "w-5 h-2.5"
+                                            : r === "1x2"
+                                            ? "w-2.5 h-5"
+                                            : r === "2x2"
+                                            ? "w-4.5 h-4.5"
+                                            : r === "16:9"
+                                            ? "w-5 h-3"
+                                            : r === "9:16"
+                                            ? "w-3 h-5"
+                                            : r === "4:3"
+                                            ? "w-5 h-4"
+                                            : r === "3:4"
+                                            ? "w-4 h-5"
+                                            : r === "2:3"
+                                            ? "w-3 h-5"
+                                            : r === "3:2"
+                                            ? "w-5 h-3"
+                                            : r === "5:4"
+                                            ? "w-5 h-4"
+                                            : r === "4:5"
+                                            ? "w-4 h-5"
+                                            : "w-6 h-3"
+                                    }`}
+                                />
                             </button>
                         ))}
+
+                        {page < pages.length - 1 && (
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setPage((p) => p + 1);
+                                }}
+                                className="p-1 rounded-xl text-white hover:bg-white/10 transition-colors"
+                            >
+                                <ChevronRight size={14} />
+                            </button>
+                        )}
                     </div>
                 )}
             </div>

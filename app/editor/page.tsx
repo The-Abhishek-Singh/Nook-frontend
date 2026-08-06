@@ -8,6 +8,7 @@ import AddMediaSection from '@/components/AddMediaSection';
 import Navbar from '@/components/Navbar';
 import { authApi, blocksApi, uploadApi } from '@/utils/api';
 import { Block, UISocialItem, WidthType, CreateBlockPayload, BlockPosition } from '@/types';
+import { optimizeImage } from "@/utils/imageOptimizer";
 
 export default function EditorPage() {
     const router = useRouter();
@@ -16,6 +17,7 @@ export default function EditorPage() {
     const [showOnboarding, setShowOnboarding] = useState(false);
     const [loading, setLoading] = useState(true);
     const [currentLocation, setCurrentLocation] = useState<{ lat: number; lng: number } | null>(null);
+    const [uploadingImages, setUploadingImages] = useState<Set<string>>(new Set());
 
     // Profile States
     const [name, setName] = useState("");
@@ -224,40 +226,132 @@ export default function EditorPage() {
         }
     };
 
+    // const handleAddImage = async (file: File) => {
+    //     try {
+    //         const optimizedFile = await optimizeImage(file);
+    //         const uploadRes = await uploadApi.uploadImage(optimizedFile);
+    //         const imageUrl = uploadRes.data.imageUrl || uploadRes.data.url;
+
+    //         const position: BlockPosition = {
+    //             i: `image-${Date.now()}`,
+    //             x: (addedSocials.length % 2) * 2,
+    //             y: Math.floor(addedSocials.length / 2),
+    //             w: 1,
+    //             h: 1
+    //         };
+
+    //         const payload: CreateBlockPayload = {
+    //             type: 'image',
+    //             content: {
+    //                 imageUrl: imageUrl,
+    //                 title: '',
+    //                 description: ''
+    //             },
+    //             style: {
+    //                 width: '1x1',
+    //                 backgroundColor: '#ffffff',
+    //                 borderRadius: '12px'
+    //             },
+    //             position: position
+    //         };
+
+    //         await blocksApi.createBlock(payload);
+    //         await initEditor();
+    //     } catch (err) {
+    //         console.error("Image upload failed", err);
+    //     }
+    // };
+
+
     const handleAddImage = async (file: File) => {
-        try {
-            const uploadRes = await uploadApi.uploadImage(file);
-            const imageUrl = uploadRes.data.imageUrl || uploadRes.data.url;
+        alert("HANDLE ADD IMAGE");
+         console.log("🚀 HANDLE ADD IMAGE CALLED", file);
 
-            const position: BlockPosition = {
-                i: `image-${Date.now()}`,
-                x: (addedSocials.length % 2) * 2,
-                y: Math.floor(addedSocials.length / 2),
-                w: 1,
-                h: 1
-            };
+    const tempId = `temp-${Date.now()}`;
+    const previewUrl = URL.createObjectURL(file);
 
-            const payload: CreateBlockPayload = {
-                type: 'image',
-                content: {
-                    imageUrl: imageUrl,
-                    title: '',
-                    description: ''
-                },
-                style: {
-                    width: '1x1',
-                    backgroundColor: '#ffffff',
-                    borderRadius: '12px'
-                },
-                position: position
-            };
-
-            await blocksApi.createBlock(payload);
-            await initEditor();
-        } catch (err) {
-            console.error("Image upload failed", err);
-        }
+    // Temporary block shown immediately
+    const tempBlock: UISocialItem = {
+        id: tempId,
+        type: "image",
+        width: "1x1",
+        image: previewUrl,
+        content: {
+            imageUrl: previewUrl,
+            title: "",
+            description: "",
+        },
+        title: "",
+        description: "",
+        style: {
+            width: "1x1",
+            backgroundColor: "#ffffff",
+            borderRadius: "12px",
+        },
     };
+    console.log("Adding preview blocks")
+
+    setAddedSocials(prev => [...prev, tempBlock]);
+
+    setUploadingImages(prev => new Set(prev).add(tempId));
+
+    try {
+        // Compress / Convert
+        const optimizedFile = await optimizeImage(file);
+
+        // Upload
+        const uploadRes = await uploadApi.uploadImage(optimizedFile);
+
+        const imageUrl =
+            uploadRes.data.imageUrl ||
+            uploadRes.data.url;
+
+        // Create real block
+        const position: BlockPosition = {
+            i: `image-${Date.now()}`,
+            x: (addedSocials.length % 2) * 2,
+            y: Math.floor(addedSocials.length / 2),
+            w: 1,
+            h: 1,
+        };
+
+        const payload: CreateBlockPayload = {
+            type: "image",
+            content: {
+                imageUrl,
+                title: "",
+                description: "",
+            },
+            style: {
+                width: "1x1",
+                backgroundColor: "#ffffff",
+                borderRadius: "12px",
+            },
+            position,
+        };
+
+        await blocksApi.createBlock(payload);
+
+        // Reload actual block from backend
+        await initEditor();
+    } catch (err) {
+        console.error(err);
+
+        // Remove preview block if upload fails
+        setAddedSocials(prev =>
+            prev.filter(item => item.id !== tempId)
+        );
+    } finally {
+        URL.revokeObjectURL(previewUrl);
+
+        setUploadingImages(prev => {
+            const next = new Set(prev);
+            next.delete(tempId);
+            return next;
+        });
+    }
+    };
+
 
     const handleAddHeading = async () => {
         try {
@@ -425,6 +519,7 @@ export default function EditorPage() {
                         onAddQuote={handleAddQuote}
                         onAddMap={handleAddMap}
                         onAddHeading={handleAddHeading}
+                        username={name}
                     />
                 </>
             )}

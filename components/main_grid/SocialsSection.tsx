@@ -16,7 +16,7 @@ import { restrictToWindowEdges, restrictToParentElement } from '@dnd-kit/modifie
 import ProfileSection from '../ProfileSection';
 import SortableSocialCard from './SortableSocialCard';
 import { authApi, blocksApi } from '@/utils/api';
-import { UISocialItem, WidthType } from '@/types';
+import { UISocialItem, WidthType  } from '@/types';
 
 interface SocialsSectionProps {
     addedSocials: UISocialItem[];
@@ -35,24 +35,74 @@ interface SocialsSectionProps {
 // Helper functions for position mapping
 const getWidthValue = (width: WidthType): number => {
     switch (width) {
-        case '1x1': return 1;
-        case '2x1': return 2;
-        case '1x2': return 1;
-        case '2x2': return 2;
-        case 'full': return 2;
-        default: return 1;
+        case "1x1":
+        case "1x2":
+        case "1:1":
+            return 1;
+
+        case "2x1":
+        case "2x2":
+        case "3:4":
+        case "9:16":
+            return 2;
+
+        case "4:3":
+        case "3:2":
+        case "16:9":
+        case "5:4":
+        case "4:5":
+            return 3;
+
+        case "21:9":
+            return 4;
+
+        case "full":
+            return 2;
+
+        default:
+            return 1;
     }
 };
 
 const getHeightValue = (width: WidthType): number => {
     switch (width) {
-        case '1x1': return 1;
-        case '2x1': return 1;
-        case '1x2': return 2;
-        case '2x2': return 2;
-        case 'full': return 1;
-        default: return 1;
+        case "1x1":
+        case "2x1":
+        case "1:1":
+        case "16:9":
+        case "21:9":
+        case "3:2":
+            return 1;
+
+        case "1x2":
+        case "2x2":
+        case "4:3":
+        case "5:4":
+            return 2;
+
+        case "3:4":
+        case "9:16":
+        case "2:3":
+        case "4:5":
+            return 3;
+
+        case "full":
+            return 1;
+
+        default:
+            return 1;
     }
+};
+
+const getGridSpanClasses = (width: WidthType, viewMode: 'desktop' | 'mobile'): string => {
+    const colSpan = getWidthValue(width);
+    const rowSpan = getHeightValue(width);
+
+    // Map column spans dynamically
+    const colClass = colSpan === 4 ? 'col-span-4' : colSpan === 3 ? 'col-span-3' : colSpan === 2 ? 'col-span-2' : 'col-span-1';
+    const rowClass = rowSpan === 3 ? 'row-span-3' : rowSpan === 2 ? 'row-span-2' : 'row-span-1';
+
+    return `${colClass} ${rowClass}`;
 };
 
 const SocialsSection: React.FC<SocialsSectionProps> = ({
@@ -66,7 +116,7 @@ const SocialsSection: React.FC<SocialsSectionProps> = ({
     bio,
     setBio,
     avatar,
-    setAvatar
+    setAvatar,
 }) => {
     const router = useRouter();
     const [leftSaved, setLeftSaved] = useState(true);
@@ -261,7 +311,7 @@ const SocialsSection: React.FC<SocialsSectionProps> = ({
 
     return (
         <section className={`min-h-screen bg-[#fafafa] flex flex-col ${viewMode === 'mobile' ? 'items-center pt-10' : 'lg:flex-row px-6 lg:px-16 py-12 lg:py-24 gap-12'} overflow-x-hidden relative`}>
-            <div className={`transition-all duration-500 ${viewMode === 'mobile' ? 'w-[375px] mb-8' : 'w-full lg:w-[400px] shrink-0'}`}>
+            <div className={`transition-all duration-500 ${viewMode === 'mobile' ? 'w-[375px] mb-8' : 'w-full lg:w-[400px] shrink-0 '}`}>        
                 <AnimatePresence mode="wait">
                     {!leftSaved ? (
                         <motion.div key="edit-mode" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-6">
@@ -281,7 +331,7 @@ const SocialsSection: React.FC<SocialsSectionProps> = ({
                     ) : (
                         <motion.div key="saved" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center lg:items-start space-y-6 pt-4 relative">
                             <div className="relative group">
-                                <div className="w-44 h-44 rounded-full overflow-hidden border-4 border-white shadow-2xl bg-gray-100">
+                                <div className="w-44 h-44 rounded-full overflow-hidden ">
                                     {avatar ? <img src={avatar} className="w-full h-full object-cover" alt="avatar" /> : <div className="w-full h-full bg-gray-200" />}
                                 </div>
                                 <button
@@ -300,6 +350,7 @@ const SocialsSection: React.FC<SocialsSectionProps> = ({
                         </motion.div>
                     )}
                 </AnimatePresence>
+                
             </div>
 
             <div className={`flex justify-start items-start transition-all duration-500 ${viewMode === 'mobile' ? 'w-[375px]' : 'flex-1'}`}>

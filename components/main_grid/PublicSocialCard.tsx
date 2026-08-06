@@ -1,28 +1,76 @@
+
 "use client";
 import React, { useState } from 'react';
 import { MapPin, Quote, Link2 } from 'lucide-react';
 import IconRenderer from './IconRenderer';
 import LiveMap from './LiveMap';
 import { UISocialItem, WidthType } from '@/types';
+import InstagramLargeCard from "../InstagramLargeCard";
+import GithubLargeCard from '../GithubLargeCard';
+import { PLATFORM_LOGOS } from '@/utils/platformLogos';
+
 
 const laptopRatios: Record<WidthType, string> = {
-    '1x1': 'w-[208px] h-[208px]', '2x1': 'w-[448px] h-[208px]',
-    '1x2': 'w-[208px] h-[448px]', '2x2': 'w-[448px] h-[448px]', 'full': 'w-full min-h-[70px]'
+    "1x1": "w-[208px] h-[208px]",
+    "2x1": "w-[440px] h-[208px]",
+    "1x2": "w-[208px] h-[440px]",
+    "2x2": "w-[440px] h-[440px]",
+    "full": "w-full min-h-[70px]",
+    "1:1": "w-[208px] h-[208px]",
+    "3:4": "w-[208px] h-[278px]",
+    "4:3": "w-[278px] h-[208px]",
+    "2:3": "w-[208px] h-[312px]",
+    "3:2": "w-[312px] h-[208px]",
+    "9:16": "w-[208px] h-[370px]",
+    "16:9": "w-[370px] h-[208px]",
+    "5:4": "w-[260px] h-[208px]",
+    "4:5": "w-[208px] h-[260px]",
+    "21:9": "w-[440px] h-[208px]"
 };
 
+
 const mobileRatios: Record<WidthType, string> = {
-    '1x1': 'w-[160px] h-[160px]', '2x1': 'w-[352px] h-[160px]',
-    '1x2': 'w-[160px] h-[352px]', '2x2': 'w-[352px] h-[160px]', 'full': 'w-full min-h-[60px]'
+    "1x1": "w-[160px] h-[160px]",
+    "2x1": "w-[344px] h-[160px]",
+    "1x2": "w-[160px] h-[344px]",
+    "2x2": "w-[344px] h-[344px]",
+    "full": "w-full min-h-[60px]",
+    "1:1": "w-[160px] h-[160px]",
+    "3:4": "w-[160px] h-[214px]",
+    "4:3": "w-[214px] h-[160px]",
+    "2:3": "w-[160px] h-[240px]",
+    "3:2": "w-[240px] h-[160px]",
+    "9:16": "w-[160px] h-[284px]",
+    "16:9": "w-[284px] h-[160px]",
+    "5:4": "w-[200px] h-[160px]",
+    "4:5": "w-[160px] h-[260px]", 
+    "21:9": "w-[344px] h-[160px]"
 };
 
 const getGridSpan = (width: WidthType): string => {
     switch (width) {
-        case '1x1': return 'col-span-1 row-span-1';
-        case '2x1': return 'col-span-2 row-span-1';
-        case '1x2': return 'col-span-1 row-span-2';
-        case '2x2': return 'col-span-2 row-span-2';
-        case 'full': return 'col-span-full';
-        default: return 'col-span-1 row-span-1';
+        case '1x1':
+        case '1:1':
+            return 'col-span-1 row-span-1';
+        case '2x1':
+        case '3:2':
+        case '4:3':
+        case '5:4':
+        case '16:9':
+        case '21:9':
+            return 'col-span-2 row-span-1';
+        case '1x2':
+        case '3:4':
+        case '2:3':
+        case '4:5':
+        case '9:16':
+            return 'col-span-1 row-span-2';
+        case '2x2':
+            return 'col-span-2 row-span-2';
+        case 'full':
+            return 'col-span-full';
+        default:
+            return 'col-span-1 row-span-1';
     }
 };
 
@@ -35,7 +83,7 @@ export default function PublicSocialCard({ item, viewMode }: { item: UISocialIte
         try {
             const cleanUrl = url.replace(/\\/g, '').trim();
             const urlObj = new URL(cleanUrl.startsWith('http') ? cleanUrl : `https://${cleanUrl}`);
-            return urlObj.hostname.replace('www.', '').split('.')[0];
+            return urlObj.hostname.replace('www.', '');
         } catch { return ""; }
     };
 
@@ -49,10 +97,11 @@ export default function PublicSocialCard({ item, viewMode }: { item: UISocialIte
     let logoUrl = item.logo || item.content?.logo || item.image || item.content?.imageUrl || '';
     if (!logoUrl && rawUrl) {
         const domain = getCleanDomainName(rawUrl);
-        if (domain) logoUrl = `https://logo.clearbit.com/${domain}.com`;
+        if (domain) logoUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=128`;
     }
 
-    let displayTitle = (isLink || isSocial) ? (getCleanDomainName(rawUrl) || item.platform || "Link") : (item.title || item.content?.title || "");
+    const domainNameOnly = getCleanDomainName(rawUrl).split('.')[0];
+    let displayTitle = (isLink || isSocial) ? (domainNameOnly || item.platform || "Link") : (item.title || item.content?.title || "");
 
     return (
         <div className={`${getGridSpan(item.width)} ${item.width === 'full' || isHeading ? 'col-span-full w-full' : ''}`}>
@@ -60,7 +109,7 @@ export default function PublicSocialCard({ item, viewMode }: { item: UISocialIte
                 onClick={() => rawUrl && window.open(rawUrl, '_blank')}
                 className={`relative transition-all duration-300 ${rawUrl ? 'cursor-pointer hover:scale-[1.02]' : ''} ${isHeading ? 'w-full h-[70px]' : ratioClasses[item.width]} 
                 ${isQuote || isText ? 'bg-white rounded-[2.5rem] shadow-sm border border-gray-100 p-4' :
-                        isHeading ? 'bg-white rounded-[1.5rem] shadow-sm border border-gray-100 flex items-center px-4' :
+                        isHeading ? ' flex items-center px-4' :
                             item.type === 'map' ? 'bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden' :
                                 'bg-white rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col overflow-hidden'}`}>
 
@@ -80,6 +129,23 @@ export default function PublicSocialCard({ item, viewMode }: { item: UISocialIte
                     <LiveMap lat={item.location?.lat} lng={item.location?.lng} />
                 ) : item.type === 'image' ? (
                     <img src={item.image} className="w-full h-full object-cover" alt="Content" />
+                ) : (item.platform?.toLowerCase() === "instagram"||item.platform?.toLowerCase() === "twitter")
+                 && (item.content?.cachedData?.items?.length ?? 0) > 0 ? (
+                    <InstagramLargeCard
+                        item={item}
+                        profile={item.content?.cachedData?.profile}
+                        fetchedItems={item.content?.cachedData?.items || []}
+                        logoUrl={logoUrl}
+                        subtitle={item.handle || `@${item.content?.cachedData?.profile?.username || ''}`}
+                    />
+                ) : item.platform?.toLowerCase() === "github" && (item.content?.cachedData?.items?.length ?? 0) > 0 ? (
+                    <GithubLargeCard
+                        item={item}    
+                        profile={item.content?.cachedData?.profile}
+                        fetchedItems={item.content?.cachedData?.items || []}
+                        logoUrl={logoUrl}
+                        subtitle={item.handle || `@${item.content?.cachedData?.profile?.username || ''}`}
+                    />
                 ) : (
                     <div className="flex-1 flex flex-col items-center justify-center p-4 text-center gap-3">
                         {logoUrl && !imgError ? (

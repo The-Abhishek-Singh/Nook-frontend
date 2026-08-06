@@ -16,6 +16,65 @@ api.interceptors.request.use(
     (error) => Promise.reject(error)
 );
 
+api.interceptors.response.use(
+    (response) => response,
+
+    async (error) => {
+        const originalRequest = error.config;
+
+        // Prevent infinite retry loop
+        if (
+            error.response?.status === 401 &&
+            !originalRequest._retry
+        ) {
+            originalRequest._retry = true;
+
+            try {
+                const refreshToken = localStorage.getItem("refreshToken");
+
+                if (!refreshToken) {
+                    throw new Error("No refresh token");
+                }
+
+                const response = await axios.post(
+                    `${process.env.NEXT_PUBLIC_API_URL}/auth/refresh-token`,
+                    {
+                        refreshToken,
+                    }
+                );
+
+                const {
+                    accessToken,
+                    refreshToken: newRefreshToken,
+                } = response.data;
+
+                localStorage.setItem("token", accessToken);
+                localStorage.setItem(
+                    "refreshToken",
+                    newRefreshToken
+                );
+
+                originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+
+                return api(originalRequest);
+
+            } catch (refreshError) {
+
+                localStorage.removeItem("token");
+                localStorage.removeItem("refreshToken");
+
+                if (typeof window !== "undefined") {
+                    window.location.href = "/login";
+                }
+
+                return Promise.reject(refreshError);
+            }
+        }
+
+        return Promise.reject(error);
+    }
+);
+
 export const authApi = {
     login: (email, password) => api.post("/auth/login", { email, password }),
     register: (data) => api.post("/auth/register", data),
@@ -23,7 +82,10 @@ export const authApi = {
     getMe: () => api.get("/auth/me"),
     setUsername: (username) => api.put("/auth/set-username", { username }),
     checkUsername: (username) => api.get(`/auth/check-username/${username}`),
+    changeUsername:(username)=>api.put("/auth/change-username",{username}),
     updateProfile: (data) => api.put("/auth/update-profile", data),
+    refreshToken: (refreshToken) => api.post("/auth/refresh-token", { refreshToken }),
+    logout: (refreshToken) => api.post("/auth/logout", { refreshToken }),
     updateAvatar: (file) => {
         const formData = new FormData();
         formData.append("image", file);

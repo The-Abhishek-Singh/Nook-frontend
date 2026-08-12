@@ -24,7 +24,7 @@ export default function EditorPage() {
     const [bio, setBio] = useState("");
     const [avatar, setAvatar] = useState<string | null>(null);
 
-    // Get user's current location
+
     useEffect(() => {
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(

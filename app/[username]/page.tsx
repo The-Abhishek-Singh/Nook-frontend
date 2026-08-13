@@ -1,18 +1,27 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
-import { blocksApi } from '@/utils/api';
+import { blocksApi, authApi } from '@/utils/api';
 import { UISocialItem, WidthType } from '@/types';
 import PublicSocialCard from '@/components/main_grid/PublicSocialCard';
 
+
 export default function ProfilePage() {
     const params = useParams();
+    const router = useRouter();
     const username = params.username as string;
+
     const [blocks, setBlocks] = useState<UISocialItem[]>([]);
     const [profile, setProfile] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [viewMode, setViewMode] = useState<'desktop' | 'mobile'>('desktop');
+
+    // Authentication state for public profile actions
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [currentUsername, setCurrentUsername] = useState("");
+    const [authChecked, setAuthChecked] = useState(false);
+
 
     // Sync viewMode with screen width for card ratios
     useEffect(() => {
@@ -24,6 +33,38 @@ export default function ProfilePage() {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
+
+    // Check whether visitor is logged in and identify the current user
+    useEffect(() => {
+        const checkAuthentication = async () => {
+            const token = localStorage.getItem("token");
+
+            if (!token) {
+                setIsLoggedIn(false);
+                setCurrentUsername("");
+                setAuthChecked(true);
+                return;
+            }
+
+            try {
+                const res = await authApi.getMe();
+                const userData = res.data;
+
+                setIsLoggedIn(true);
+                setCurrentUsername(userData?.username || "");
+            } catch (err) {
+                console.error("Authentication check failed:", err);
+                setIsLoggedIn(false);
+                setCurrentUsername("");
+            } finally {
+                setAuthChecked(true);
+            }
+        };
+
+        checkAuthentication();
+    }, []);
+
+
     useEffect(() => {
         const fetchPublicData = async () => {
             try {
@@ -34,16 +75,20 @@ export default function ProfilePage() {
                     id: b._id,
                     type: b.type,
                     width: (b.style?.width as WidthType) || '1x1',
+
                     content: b.content,
                     title: b.content?.title || "",
                     description: b.content?.description || "",
                     image: b.content?.imageUrl || b.content?.logo || "",
                     logo: b.content?.logo || "",
                     url: b.content?.url || "",
+                    platform: b.content?.platform || "", // ✅ ADD
                     handle: b.content?.handle || "",
                     color: b.style?.color || "",
                     iconName: b.content?.iconName || "",
                     location: b.content?.location,
+                    position: b.position,
+                    order: b.order || 0,
                 }));
 
                 setBlocks(mapped);
@@ -54,8 +99,10 @@ export default function ProfilePage() {
                 setLoading(false);
             }
         };
+
         if (username) fetchPublicData();
     }, [username]);
+
 
     if (loading) return (
         <div className="min-h-screen flex items-center justify-center bg-white">
@@ -63,28 +110,88 @@ export default function ProfilePage() {
         </div>
     );
 
-    if (!profile && !loading) return <div className="min-h-screen flex items-center justify-center text-xl font-bold text-gray-800">User Not Found</div>;
+
+    if (!profile && !loading) return (
+        <div className="min-h-screen flex items-center justify-center text-xl font-bold text-gray-800">
+            User Not Found
+        </div>
+    );
+
+
+    const isOwner =
+        isLoggedIn &&
+        currentUsername &&
+        username &&
+        currentUsername.toLowerCase() === username.toLowerCase();
+
 
     return (
         <main className="min-h-screen bg-[#fafafa] flex flex-col lg:flex-row px-4 md:px-8 lg:px-16 py-8 md:py-12 lg:py-24 gap-8 lg:gap-12 overflow-x-hidden">
+
             {/* Sidebar Profile Info */}
             <div className="w-full lg:w-[350px] xl:w-[400px] shrink-0 flex flex-col items-center lg:items-start space-y-6 pt-4">
-                <div className="w-32 h-32 md:w-44 md:h-44 rounded-full overflow-hidden border-4 border-white shadow-2xl bg-gray-100">
+
+                <div className="w-36 h-36 md:w-44 md:h-44 rounded-full overflow-hidden">
                     {profile?.avatarUrl ? (
-                        <img src={profile.avatarUrl} className="w-full h-full object-cover" alt="avatar" />
+                        <img
+                            src={profile.avatarUrl}
+                            className="w-full h-full object-cover"
+                            alt="avatar"
+                        />
                     ) : (
                         <div className="w-full h-full bg-gray-200" />
                     )}
                 </div>
+
                 <div className="space-y-2 text-center lg:text-left px-2 max-w-lg">
                     <h1 className="text-4xl md:text-5xl font-black text-gray-900 tracking-tighter leading-none mb-2">
                         {profile?.displayName || username}
                     </h1>
+
                     <p className="text-lg md:text-xl text-gray-500 font-medium leading-tight">
                         {profile?.bio || "No bio available"}
                     </p>
                 </div>
+                {/* Public Profile Actions */}
+              {authChecked && (
+                  <div className="flex items-center gap-7 px-2 mt-6">
+                      {isOwner ? (
+                          <button
+                              onClick={() => router.push("/")}
+                              className="inline-flex items-center gap-1.5 rounded-md bg-[#6C7FF2] text-white px-4 py-2 text-[11px] font-medium shadow-sm hover:bg-[#5f72e5] transition-all active:scale-[0.98]"
+                          >
+                              <span className="text-[10px]">◆</span>
+                              Edit your Nook
+                          </button>
+                         ) : (
+                  <>
+                <button
+                    onClick={() => router.push(isLoggedIn ? "/" : "/claim")}
+                    className="inline-flex items-center gap-1.5 rounded-md bg-[#6C7FF2] text-white px-4 py-2 text-[11px] font-medium shadow-sm hover:bg-[#5f72e5] transition-all active:scale-[0.98]"
+                >
+                    <img
+                       src="/vercel.svg"
+                       alt="Vercel"
+                       className="w-3 h-3"
+                         />
+                    Create Your Nook
+                </button>
+
+                {!isLoggedIn && (
+                    <button
+                        onClick={() => router.push("/login")}
+                        className="text-[10px] font-medium text-gray-500 hover:text-gray-800 transition-colors"
+                    >
+                        Log in
+                    </button>
+                )}
+            </>
+        )}
+    </div>
+)}
+
             </div>
+
 
             {/* Blocks Grid */}
             <div className="flex-1 w-full max-w-[1200px] mx-auto lg:mx-0">

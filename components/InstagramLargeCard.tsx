@@ -19,6 +19,10 @@ const InstagramLargeCard = ({
 }: InstagramLargeCardProps) => {
 
     const width = item?.width;
+    const isTwitter = item?.platform?.toLowerCase() === "twitter";
+    const profileUrl = isTwitter
+    ? `https://x.com/${profile?.username}`
+    : `https://instagram.com/${profile?.username}`;
 
     // Small or constrained square layouts that need a centered logo + text profile layout
     const isSmallCentered = ["1x1", "1:1"].includes(width);
@@ -107,7 +111,7 @@ const InstagramLargeCard = ({
                     <button
                         onClick={(e) => {
                             e.stopPropagation();
-                            window.open(`https://instagram.com/${profile?.username}`, "_blank");
+                            window.open(profileUrl, "_blank");;
                         }}
                         className="shrink-0 w-full max-w-[150px] h-9 rounded-xl bg-[#4F95F6] hover:bg-[#4288EB] text-white font-semibold flex items-center justify-center gap-1.5 text-xs sm:text-sm mt-2"
                     >
@@ -170,7 +174,7 @@ const InstagramLargeCard = ({
                         <button
                             onClick={(e) => {
                                 e.stopPropagation();
-                                window.open(`https://instagram.com/${profile?.username}`, "_blank");
+                                window.open(profileUrl, "_blank");
                             }}
                             className="w-fit px-3 h-6 mt-1.5 rounded-lg bg-[#4F95F6] hover:bg-[#4288EB] text-white font-semibold flex items-center justify-center gap-1 text-[11px]"
                         >
@@ -260,10 +264,7 @@ const InstagramLargeCard = ({
                         <button
                             onClick={(e) => {
                                 e.stopPropagation();
-                                window.open(
-                                    `https://instagram.com/${profile?.username}`,
-                                    "_blank"
-                                );
+                               window.open(profileUrl, "_blank");
                             }}
                             className={`shrink-0 rounded-xl bg-[#4F95F6] hover:bg-[#4288EB] text-white font-semibold flex items-center justify-center gap-1.5 ${
                                 isWide 

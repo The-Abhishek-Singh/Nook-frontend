@@ -44,11 +44,14 @@ export default function Navbar({
     const [copied, setCopied] = useState(false);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const linkPopupRef = useRef<HTMLDivElement>(null);
+    const linkButtonRef = useRef<HTMLButtonElement>(null);
 
     // Scroll-affordance state for the horizontally-scrollable icon strip on mobile
     const scrollRef = useRef<HTMLDivElement>(null);
     const [canScrollLeft, setCanScrollLeft] = useState(false);
     const [canScrollRight, setCanScrollRight] = useState(false);
+    
 
     const checkScroll = () => {
         const el = scrollRef.current;
@@ -76,6 +79,26 @@ export default function Navbar({
             ro.disconnect();
         };
     }, []);
+
+
+    useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+        if (
+            linkPopupRef.current &&
+            !linkPopupRef.current.contains(event.target as Node) &&
+            linkButtonRef.current &&
+            !linkButtonRef.current.contains(event.target as Node)
+        ) {
+            setShowLinkPopup(false);
+        }
+    };
+    if (showLinkPopup) {
+        document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+    };
+}, [showLinkPopup]);
 
     const scrollByAmount = (dir: 'left' | 'right') => {
         scrollRef.current?.scrollBy({ left: dir === 'left' ? -80 : 80, behavior: 'smooth' });
@@ -237,6 +260,7 @@ export default function Navbar({
             <AnimatePresence>
                 {showLinkPopup && (
                     <motion.div
+                        ref={linkPopupRef} 
                         initial={{ opacity: 0, y: 15, scale: 0.9 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 15, scale: 0.9 }}
@@ -320,6 +344,7 @@ export default function Navbar({
                         >
 
                             <button
+                                ref={linkButtonRef}
                                 onClick={() => setShowLinkPopup(!showLinkPopup)}
                                 disabled={isDisabled}
                                 className={`p-1.5 lg:p-2 rounded-[12px] lg:rounded-[14px] transition-all shrink-0 ${showLinkPopup ? 'bg-black text-white' : 'text-gray-500 hover:bg-gray-100'} disabled:opacity-50 disabled:cursor-not-allowed`}

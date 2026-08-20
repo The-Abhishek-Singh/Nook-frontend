@@ -421,7 +421,8 @@ const SocialsSection: React.FC<SocialsSectionProps> = ({
             </div>
 
             <div className={`flex justify-start items-start transition-all duration-500 ${viewMode === 'mobile' ? 'w-[375px]' : 'flex-1'}`}>
-                <motion.div animate={{ width: viewMode === 'mobile' ? '375px' : '100%' }} className="min-h-[500px] relative w-full">
+                <motion.div animate={{ width: viewMode === 'mobile' ? '375px' : '100%' }} className={`min-h-[500px] relative w-full ${viewMode === 'mobile' ? 'pb-30' : 'pb-6'}`}
+>
                     {addedSocials.length === 0 ? (
                         <div className="flex items-center justify-center h-64 text-gray-400">
                             <p>No blocks yet. Click the + button to add content!</p>

@@ -67,6 +67,8 @@ export default function HomePage() {
         };
     }, [showSettingsPopover, activeModal]);
 
+    
+
     // 1. Get user's current location
     useEffect(() => {
         if (navigator.geolocation) {

@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+@import 'maplibre-gl/dist/maplibre-gl.css';
+
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -55,4 +58,24 @@ p {
   font-family: var(--font-sans);
   font-weight: 500;
   color: #6b7280;
+}
+
+.maplibregl-ctrl-bottom-right {
+    transform: scale(0.7);
+    transform-origin: bottom right;
+}
+
+.maplibregl-ctrl-attrib {
+    font-size: 8px !important;
+    padding: 0px 4px !important;
+    background: rgba(255, 255, 255, 0.75) !important;
+    border-radius: 8px !important;
+}
+
+.maplibregl-ctrl-attrib-inner {
+    white-space: nowrap;
+}
+
+.maplibregl-ctrl-bottom-right {
+    display: none !important;
 }

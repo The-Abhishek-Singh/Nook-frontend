@@ -14,7 +14,7 @@ import { optimizeImage } from "@/utils/imageOptimizer";
 
 // How often to poll while a social block is still fetching, and how long to keep trying.
 const POLL_INTERVAL_MS = 3000;
-const MAX_POLL_ATTEMPTS = 20;
+const MAX_POLL_ATTEMPTS = 12;
 
 type ActiveModalType = 'username' | 'email' | 'password' | null;
 
@@ -287,7 +287,7 @@ useEffect(() => {
             }));
 
             await fetch(`${API_URL}/positions`, {
-                method: 'POST',
+                method: 'PUT',
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'

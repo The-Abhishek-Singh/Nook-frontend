@@ -42,6 +42,7 @@ export interface BlockContent {
         lat: number;
         lng: number;
     };
+    textAlign?: TextAlign;
     cachedData?: CachedSocialData;
     fetchStatus?: "pending" | "fetching" | "completed" | "failed";
     lastFetchedAt?: Date;
@@ -133,3 +134,5 @@ export interface CachedSocialData {
 
     fetchedAt?: string;
 }
+
+export type TextAlign = 'left' | 'center' | 'right';

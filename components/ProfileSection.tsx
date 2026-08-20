@@ -24,6 +24,9 @@ export default function ProfileSection({
 }: ProfileSectionProps) {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [uploading, setUploading] = useState(false);
+    const BIO_CHAR_LIMIT = 250;
+    const bioCharCount = bio.length;
+    const isBioOverLimit = bioCharCount > BIO_CHAR_LIMIT;
 
     const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -43,19 +46,20 @@ export default function ProfileSection({
         }
     };
 
-    const handleProfileUpdate = async () => {
-        try {
-            const payload = {
-                profile: {
-                    displayName: name,
-                    bio: bio
-                }
-            };
-            await authApi.updateProfile(payload);
-        } catch (error) {
-            console.error("Auto-save failed:", error);
-        }
-    };
+     const handleProfileUpdate = async () => {
+    if (isBioOverLimit) return;
+    try {
+        const payload = {
+            profile: {
+                displayName: name,
+                bio: bio
+            }
+        };
+        await authApi.updateProfile(payload);
+    } catch (error) {
+        console.error("Auto-save failed:", error);
+    }
+};
 
     return (
         <div className={`flex flex-col items-center ${viewMode === 'mobile' ? 'items-center text-center' : 'lg:items-start lg:text-left'} mb-8 transition-all duration-300`}>
@@ -116,6 +120,10 @@ export default function ProfileSection({
                     placeholder="Your Bio"
                     rows={2}
                 />
+               <p className={`text-xs font-bold ${viewMode === 'mobile' ? 'text-center' : 'text-left'} ${isBioOverLimit ? "text-red-500" : "text-gray-300"}`}>
+                   {bioCharCount}/{BIO_CHAR_LIMIT} characters
+                   {isBioOverLimit && " — Limit exceeded"}
+               </p>
             </div>
         </div>
     );

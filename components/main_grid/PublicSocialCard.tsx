@@ -3,11 +3,12 @@
 import React, { useState } from 'react';
 import { MapPin, Quote, Link2 } from 'lucide-react';
 import IconRenderer from './IconRenderer';
-import LiveMap from './LiveMap';
 import { UISocialItem, WidthType } from '@/types';
 import InstagramLargeCard from "../InstagramLargeCard";
 import GithubLargeCard from '../GithubLargeCard';
 import { PLATFORM_LOGOS } from '@/utils/platformLogos';
+import dynamic from 'next/dynamic';
+const LiveMap = dynamic(() => import('./LiveMap'), { ssr: false });
 
 
 const laptopRatios: Record<WidthType, string> = {
@@ -114,18 +115,25 @@ export default function PublicSocialCard({ item, viewMode }: { item: UISocialIte
                                 'bg-white rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col overflow-hidden'}`}>
 
                 {isHeading ? (
-                    <div className="w-full flex items-center gap-3 h-full">
-                        <div className="min-w-[160px] max-w-fit bg-[#F5F5F7] rounded-xl px-4 py-2.5">
-                            <span className="font-bold text-gray-800 text-lg uppercase tracking-tight">{displayTitle}</span>
-                        </div>
-                        <div className="flex-1 h-[1px] bg-gray-100 mr-2" />
-                    </div>
-                ) : isQuote ? (
-                    <div className="w-full h-full bg-[#F5F5F7] rounded-[1.5rem] p-5 flex flex-col justify-center">
-                        <Quote size={20} className="text-gray-400 mb-2" />
-                        <p className="text-gray-700 text-lg font-medium leading-relaxed italic">"{item.description}"</p>
-                    </div>
-                ) : item.type === 'map' ? (
+    <div className="w-full h-full flex items-center px-4 py-3">
+        <div className="flex-1 h-full bg-[#F5F5F7] rounded-xl px-4 py-2.5 flex items-center">
+            <span
+                className="font-bold text-gray-800 text-lg uppercase tracking-tight w-full"
+                style={{ textAlign: item.content?.textAlign || 'left' }}
+            >
+                {displayTitle}
+            </span>
+        </div>
+    </div>
+) : isQuote ? (
+    <div className="w-full h-full bg-[#F5F5F7] rounded-[1.5rem] p-6 flex flex-col items-center justify-center text-center">
+        {item.description ? (
+            <p className="text-gray-700 text-lg font-medium leading-relaxed italic">"{item.description}"</p>
+        ) : (
+            <p className="text-gray-300 text-lg font-medium italic">No quote added</p>
+        )}
+    </div>
+) : item.type === 'map' ? (
                     <LiveMap lat={item.location?.lat} lng={item.location?.lng} />
                 ) : item.type === 'image' ? (
                     <img src={item.image} className="w-full h-full object-cover" alt="Content" />
@@ -150,7 +158,7 @@ export default function PublicSocialCard({ item, viewMode }: { item: UISocialIte
                     <div className="flex-1 flex flex-col items-center justify-center p-4 text-center gap-3">
                         {logoUrl && !imgError ? (
                             <div className="w-16 h-16 rounded-2xl overflow-hidden shadow-sm border border-gray-100 bg-white flex items-center justify-center">
-                                <img src={logoUrl.replace(/\\/g, '')} className="w-full h-full object-cover" alt={displayTitle} onError={() => setImgError(true)} />
+                                <img src={logoUrl.replace(/\\/g, '')} className="w-full h-full object-cover scale-120" alt={displayTitle} onError={() => setImgError(true)} />
                             </div>
                         ) : (
                             <div className={`w-16 h-16 rounded-2xl flex items-center justify-center text-white ${item.color || 'bg-zinc-800 shadow-lg'}`}>

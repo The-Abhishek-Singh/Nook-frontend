@@ -4,13 +4,14 @@
 import React, { useCallback, useRef, useEffect, useState } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Trash2, MapPin, Quote, Link2, GripVertical, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Trash2, MapPin, Quote, Link2, GripVertical, ChevronLeft, ChevronRight,Search, Lock, Unlock, X,AlignLeft, AlignCenter, AlignRight } from 'lucide-react';
 import IconRenderer from './IconRenderer';
-import LiveMap from './LiveMap';
 import { UISocialItem, WidthType, BlockContent } from '@/types';
 import InstagramLargeCard from "../InstagramLargeCard";
 import GithubLargeCard from '../GithubLargeCard';
 import { PLATFORM_LOGOS } from '@/utils/platformLogos';
+import dynamic from 'next/dynamic';
+const LiveMap = dynamic(() => import('./LiveMap'), { ssr: false });
 
 const laptopRatios: Record<WidthType, string> = {
     "1x1": "w-[208px] h-[208px]",
@@ -50,36 +51,6 @@ const mobileRatios: Record<WidthType, string> = {
     "4:5": "w-[160px] h-[260px]",
     "21:9": "w-[344px] h-[160px]"
 };
-
-
-
-// const getGridSpan = (width: WidthType, type?: String): string => {
-//     if (type === 'heading') return 'col-span-full w-full';
-//     switch (width) {
-//         case '1x1':
-//         case '1:1': 
-//             return 'col-span-1 row-span-1';
-//         case '2x1':
-//         case '3:2': 
-//         case '21:9':
-//         case '16:9':
-//         case '5:4':
-//             return 'col-span-2 row-span-1';
-//         case '1x2':
-//         case '3:4':
-//         case '2:3':
-//         case '9:16':
-//         case '4:5':
-//             return 'col-span-1 row-span-2';
-//         case '2x2':
-//         case '4:3':
-//             return 'col-span-2 row-span-2';
-//         case 'full': 
-//             return 'col-span-full';
-//         default: 
-//             return 'col-span-1 row-span-1';
-//     }
-// };
 
 const getGridSpan = (width: WidthType, type?: String): string => {
     if (type === 'heading') return 'col-span-full w-full';
@@ -124,6 +95,15 @@ const SortableSocialCard = ({ item, removeItem, changeRatio, updateItem, viewMod
     const style = { transform: CSS.Translate.toString(transform), transition, zIndex: isDragging ? 50 : 1 };
     const [imgError, setImgError] = useState(false);
     const [page, setPage] = useState(0);
+    const [mapCoords, setMapCoords] = useState<{ lat: number; lng: number } | undefined>(
+    item.location ? { lat: item.location.lat, lng: item.location.lng } : undefined
+);
+
+    const [isMapUnlocked, setIsMapUnlocked] = useState(false);
+    const [showMapSearch, setShowMapSearch] = useState(false);
+    const [mapSearchQuery, setMapSearchQuery] = useState("");
+    const [mapSearchResults, setMapSearchResults] = useState<any[]>([]);
+    const mapSearchDebounceRef = useRef<NodeJS.Timeout | null>(null);
     
     const platformLower = item.platform?.toLowerCase() || "";
     const isRestrictedPlatform = platformLower === "linkedin" || platformLower === "spotify";
@@ -139,6 +119,45 @@ const SortableSocialCard = ({ item, removeItem, changeRatio, updateItem, viewMod
 
     const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
     const pendingUpdateRef = useRef<{ id: string; data: any } | null>(null);
+
+    const searchLocation = useCallback((query: string) => {
+    if (mapSearchDebounceRef.current) clearTimeout(mapSearchDebounceRef.current);
+    if (!query.trim()) {
+        setMapSearchResults([]);
+        return;
+    }
+    mapSearchDebounceRef.current = setTimeout(async () => {
+        try {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/geocode?q=${encodeURIComponent(query)}`);
+            const data = await res.json();
+            setMapSearchResults(data);
+        } catch (err) {
+            console.error("Location search failed", err);
+            setMapSearchResults([]);
+        }
+    }, 400);
+}, []);
+
+const handleAlignChange = useCallback((align: 'left' | 'center' | 'right') => {
+    updateItem(item.id, { content: { textAlign: align } });
+}, [item.id, updateItem]);
+
+     useEffect(() => {
+    if (item.location) {
+        setMapCoords({ lat: item.location.lat, lng: item.location.lng });
+    }
+}, [item.location?.lat, item.location?.lng]);
+
+const handleSelectSearchResult = (result: any) => {
+    const newLat = parseFloat(result.lat);
+    const newLng = parseFloat(result.lon);
+    setMapCoords({ lat: newLat, lng: newLng })
+
+    updateItem(item.id, { content: { location: { lat: newLat, lng: newLng } } });
+    setMapSearchQuery("");
+    setMapSearchResults([]);
+    setShowMapSearch(false);
+};
 
     const getDomain = (url: string) => {
         if (!url) return "";
@@ -267,17 +286,18 @@ const SortableSocialCard = ({ item, removeItem, changeRatio, updateItem, viewMod
                                 item.type === 'map' ? 'bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden' :
                                     'bg-white rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col overflow-hidden'}`}
                 >
-                             {isHeading ? (
-                                  <div className="w-full flex items-center relative h-full px-4 py-3">
-                 <div className="flex-1 h-full bg-[#F5F5F7] rounded-xl px-4 py-2.5 flex items-center z-40">
-                     <input
-                         className="w-full bg-transparent border-none outline-none font-bold text-gray-800 placeholder:text-[#9fb3d0] text-lg"
-                         placeholder="Add Heading..."
-                         value={item.title || ""}
-                         onChange={(e) => handleContentChange(e.target.value, 'title')}
-                     />
-                 </div>
-                </div>
+{isHeading ? (
+     <div className="w-full flex items-center relative h-full px-4 py-3">
+ <div className="flex-1 h-full bg-[#F5F5F7] rounded-xl px-4 py-2.5 flex items-center z-40">
+     <input
+         className="w-full bg-transparent border-none outline-none font-bold text-gray-800 placeholder:text-[#9fb3d0] text-lg"
+         style={{ textAlign: item.content?.textAlign || 'left' }}
+         placeholder="Add Heading..."
+         value={item.title || ""}
+         onChange={(e) => handleContentChange(e.target.value, 'title')}
+     />
+ </div>
+</div>
                     ) : isQuote ? (
                         <div className="w-full h-full flex flex-col relative">
                             <div className="w-full h-full bg-[#F5F5F7] rounded-[1.5rem] p-5 flex flex-col overflow-hidden">
@@ -289,11 +309,13 @@ const SortableSocialCard = ({ item, removeItem, changeRatio, updateItem, viewMod
                                         value={item.description || ""}
                                         onChange={(e) => handleContentChange(e.target.value, 'description')}
                                         rows={3}
-                                    />
+                                        style={{ fieldSizing: 'content' } as React.CSSProperties}
+                                    /> 
+                                    <Quote size={20} className="text-gray-400 shrink-0 self-end" />
                                 </div>
                             </div>
                         </div>
-                    ) : isText ? (
+                    ): isText ? (
                         <div className="w-full h-full flex flex-col relative">
                             <div className="w-full h-full bg-[#F5F5F7] rounded-[1.5rem] p-5 flex flex-col overflow-hidden">
                                 <input
@@ -311,14 +333,36 @@ const SortableSocialCard = ({ item, removeItem, changeRatio, updateItem, viewMod
                             </div>
                         </div>
                     ) : item.type === 'map' ? (
-                        <div className="w-full h-full relative group">
-                            <LiveMap lat={item.location?.lat} lng={item.location?.lng} />
-                            <div className="absolute bottom-4 left-4 z-20 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-xl shadow-sm border border-gray-100 flex items-center gap-2">
-                                <MapPin size={12} className="text-red-500" />
-                                <span className="text-[10px] font-bold text-gray-800 uppercase tracking-tighter">Location</span>
-                            </div>
-                        </div>
-                    ) : item.type === 'image' ? (
+    <div className="w-full h-full relative group">
+        {/* <LiveMap
+            lat={item.location?.lat}
+            lng={item.location?.lng}
+            interactive={isMapUnlocked}
+            onLocationChange={(newLat, newLng) => updateItem(item.id, { content: { location: { lat: newLat, lng: newLng } } })}
+        /> */}
+        <div
+        className="w-full h-full relative group"
+        onPointerDown={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
+        onTouchStart={(e) => e.stopPropagation()}
+    >
+        <LiveMap
+    key={`map-${item.id}-${item.order ?? 0}`} 
+    lat={mapCoords?.lat}
+    lng={mapCoords?.lng}
+    interactive={isMapUnlocked}
+    onLocationChange={(newLat, newLng) => {
+        setMapCoords({ lat: newLat, lng: newLng });   // keep local state in sync on drag too
+        updateItem(item.id, { content: { location: { lat: newLat, lng: newLng } } });
+    }}
+/>
+</div>
+        <div className="absolute bottom-4 left-4 z-20 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-xl shadow-sm border border-gray-100 flex items-center gap-2 pointer-events-none">
+            <MapPin size={12} className="text-red-500" />
+            <span className="text-[10px] font-bold text-gray-800 uppercase tracking-tighter">Location</span>
+        </div>
+    </div>
+) : item.type === 'image' ? (
                         <div className="w-full h-full flex items-center justify-center overflow-hidden">
                             <div className="overflow-hidden rounded-[inherit] bg-gray-100 w-full h-full">
                                 <img
@@ -385,6 +429,66 @@ const SortableSocialCard = ({ item, removeItem, changeRatio, updateItem, viewMod
                         </div>
                     )}
                 </div>
+
+                {item.type === 'map' && !isOverlay && (
+    <div
+        onClick={(e) => e.stopPropagation()}
+        className="absolute bottom-4 right-4 z-40 flex flex-col items-end gap-2"
+    >
+        {showMapSearch && (
+            <div className="w-64 max-w-[calc(100vw-2rem)] bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
+                {mapSearchResults.length > 0 && (
+                    <div className="max-h-52 overflow-y-auto">
+                        {mapSearchResults.map((r, idx) => (
+                            <button
+                                key={idx}
+                                onClick={() => handleSelectSearchResult(r)}
+                                className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 border-b border-gray-50 last:border-0 transition-colors"
+                            >
+                                {r.display_name}
+                            </button>
+                        ))}
+                    </div>
+                )}
+                <div className="flex items-center gap-2 p-3">
+                    <input
+                        autoFocus
+                        value={mapSearchQuery}
+                        onChange={(e) => {
+                            setMapSearchQuery(e.target.value);
+                            searchLocation(e.target.value);
+                        }}
+                        placeholder="Search a location..."
+                        className="flex-1 text-sm outline-none border border-gray-200 focus:border-emerald-400 rounded-full px-4 py-2 transition-colors"
+                    />
+                    {mapSearchQuery && (
+                        <button
+                            onClick={() => { setMapSearchQuery(""); setMapSearchResults([]); }}
+                            className="text-gray-400 hover:text-gray-600 shrink-0"
+                        >
+                            <X size={16} />
+                        </button>
+                    )}
+                </div>
+            </div>
+        )}
+
+        <div className="flex items-center gap-1 bg-black/60 backdrop-blur-md p-1 rounded-2xl shadow-xl border border-white/10">
+            <button
+                onClick={() => setShowMapSearch((prev) => !prev)}
+                className={`p-2 rounded-xl transition-colors ${showMapSearch ? "bg-white text-black" : "text-white hover:bg-white/10"}`}
+            >
+                <Search size={14} />
+            </button>
+            <button
+                onClick={() => { setIsMapUnlocked((prev) => !prev); setShowMapSearch(false); }}
+                className={`p-2 rounded-xl transition-colors ${isMapUnlocked ? "bg-white text-black" : "text-white hover:bg-white/10"}`}
+            >
+                {isMapUnlocked ? <Unlock size={14} /> : <Lock size={14} />}
+            </button>
+        </div>
+    </div>
+)}
 
                 {!isOverlay && item.width !== 'full' && !isHeading && !isQuote && !isText && (
                     <div className="absolute bottom-2 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all flex items-center bg-black/60 backdrop-blur-md p-1 rounded-2xl gap-1 shadow-xl z-40 border border-white/10">
@@ -456,6 +560,30 @@ const SortableSocialCard = ({ item, removeItem, changeRatio, updateItem, viewMod
                                 <ChevronRight size={14} />
                             </button>
                         )}
+
+                        
+                    </div>
+                )}
+                {!isOverlay && isHeading && (
+                    <div
+                        onClick={(e) => e.stopPropagation()}
+                        className="absolute bottom-2 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all flex items-center bg-black/60 backdrop-blur-md p-1 rounded-2xl gap-1 shadow-xl z-40 border border-white/10"
+                    >
+                        {(['left', 'center', 'right'] as const).map((align) => (
+                            <button
+                                key={align}
+                                onClick={() => handleAlignChange(align)}
+                                className={`p-2 rounded-xl transition-colors ${
+                                    (item.content?.textAlign || 'left') === align
+                                        ? "bg-white text-black shadow-md"
+                                        : "text-white hover:bg-white/10"
+                                }`}
+                            >
+                                {align === 'left' && <AlignLeft size={14} />}
+                                {align === 'center' && <AlignCenter size={14} />}
+                                {align === 'right' && <AlignRight size={14} />}
+                            </button>
+                        ))}
                     </div>
                 )}
             </div>

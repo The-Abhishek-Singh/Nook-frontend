@@ -126,6 +126,16 @@ export default function ProfilePage() {
 
 
     return (
+        <>
+        <style jsx global>{`
+            @keyframes shine {
+                0% { left: -20%; }
+                100% { left: 120%; }
+            }
+            .animate-shine {
+                animation: shine 1.8s linear infinite;
+            }
+        `}</style>
         <main className="min-h-screen bg-[#fafafa] flex flex-col lg:flex-row px-4 md:px-8 lg:px-16 py-8 md:py-12 lg:py-24 gap-8 lg:gap-12 overflow-x-hidden">
 
             {/* Sidebar Profile Info */}
@@ -148,7 +158,7 @@ export default function ProfilePage() {
                         {profile?.displayName || username}
                     </h1>
 
-                    <p className="text-lg md:text-xl text-gray-500 font-medium leading-tight">
+                    <p className="text-lg md:text-xl text-gray-500 font-medium leading-tight break-words whitespace-pre-wrap max-w-full text-justify">
                         {profile?.bio || "No bio available"}
                     </p>
                 </div>
@@ -165,17 +175,18 @@ export default function ProfilePage() {
                           </button>
                          ) : (
                   <>
-                <button
-                    onClick={() => router.push(isLoggedIn ? "/" : "/claim")}
-                    className="inline-flex items-center gap-1.5 rounded-md bg-[#6C7FF2] text-white px-4 py-2 text-[11px] font-medium shadow-sm hover:bg-[#5f72e5] transition-all active:scale-[0.98]"
-                >
-                    <img
-                       src="/vercel.svg"
-                       alt="Vercel"
-                       className="w-3 h-3"
-                         />
-                    Create Your Nook
-                </button>
+                  <button
+                  onClick={() => router.push(isLoggedIn ? "/" : "/claim")}
+                  className="relative overflow-hidden inline-flex items-center gap-1.5 rounded-md bg-[#2ecc71] text-white px-4 py-2 text-[11px] font-medium shadow-sm hover:bg-[#27ae60] transition-all active:scale-[0.98]"
+                   >
+                  <span className="absolute inset-y-0 left-0 w-1/4 animate-shine bg-gradient-to-r from-transparent via-white/70 to-transparent skew-x-[-20deg] pointer-events-none" />
+                  <img
+                      src="/vercel.svg"
+                      alt="Vercel"
+                      className="relative z-10 w-3 h-3"
+                  />
+                  <span className="relative z-10">Create Your Nook</span>
+              </button>
 
                 {!isLoggedIn && (
                     <button
@@ -214,5 +225,6 @@ export default function ProfilePage() {
                 </div>
             </div>
         </main>
+        </>
     );
 }

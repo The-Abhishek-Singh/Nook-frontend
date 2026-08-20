@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Instagram, Linkedin, Github, Twitter, Dribbble, Loader2, Heart, Figma, Wind, PenTool, Video, Circle, Send, Code2, Mail } from 'lucide-react';
+import { ArrowLeft, Instagram, Linkedin, Github, Twitter, Dribbble, Loader2, Heart, Figma, Wind, PenTool, Video, Circle, Send, Code2, Mail,Check  } from 'lucide-react';
 import Link from 'next/link';
 import { authApi } from '@/utils/api';
 
@@ -19,6 +19,17 @@ export default function ClaimSection({ onBack, onNext }: { onBack: () => void; o
     const [usernameSuccess, setUsernameSuccess] = useState(false);
     const [registerError, setRegisterError] = useState("");
     const [isRightHovered, setIsRightHovered] = useState(false);
+    const [showPasswordChecklist, setShowPasswordChecklist] = useState(false);
+
+const passwordChecks = [
+    { label: "At least 8 characters", test: (pw: string) => pw.length >= 8 },
+    { label: "One uppercase letter", test: (pw: string) => /[A-Z]/.test(pw) },
+    { label: "One lowercase letter", test: (pw: string) => /[a-z]/.test(pw) },
+    { label: "One number", test: (pw: string) => /\d/.test(pw) },
+    { label: "One special character (@$!%*?&^#()_-+=)", test: (pw: string) => /[@$!%*?&^#()_\-+=]/.test(pw) },
+];
+
+const allPasswordChecksPassed = passwordChecks.every((check) => check.test(password));
 
     const [isDesktop, setIsDesktop] = useState(true);
 
@@ -156,9 +167,46 @@ export default function ClaimSection({ onBack, onNext }: { onBack: () => void; o
                                 <div className="flex gap-3">
                                     <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email address" className="flex-1 text-black bg-gray-100 py-5 px-6 rounded-2xl outline-none focus:bg-white border-2 border-transparent focus:border-gray-300 transition-all text-sm font-medium" />
                                     <div className="relative flex-1">
-                                        <input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" className="w-full text-black bg-gray-100 py-5 px-6 rounded-2xl outline-none focus:bg-white border-2 border-transparent focus:border-gray-300 transition-all text-sm font-medium pr-16" />
-                                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold bg-white px-2 py-1 text-black rounded-md border border-gray-100 shadow-sm">{showPassword ? "Hide" : "Show"}</button>
-                                    </div>
+    <input
+        type={showPassword ? "text" : "password"}
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        onFocus={() => setShowPasswordChecklist(true)}
+        onBlur={() => setTimeout(() => setShowPasswordChecklist(false), 150)}
+        placeholder="Password"
+        className="w-full text-black bg-gray-100 py-5 px-6 rounded-2xl outline-none focus:bg-white border-2 border-transparent focus:border-gray-300 transition-all text-sm font-medium pr-16"
+    />
+    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold bg-white px-2 py-1 text-black rounded-md border border-gray-100 shadow-sm">{showPassword ? "Hide" : "Show"}</button>
+
+    <AnimatePresence>
+        {showPasswordChecklist && (
+            <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.15 }}
+                className="absolute top-full left-0 w-full mt-2 bg-white rounded-2xl border border-gray-100 shadow-xl p-4 z-50"
+            >
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-2">Password must contain</p>
+                <div className="space-y-1.5">
+                    {passwordChecks.map((check, idx) => {
+                        const passed = check.test(password);
+                        return (
+                            <div key={idx} className="flex items-center gap-2">
+                                <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 transition-colors ${passed ? "bg-green-500" : "bg-gray-200"}`}>
+                                    {passed && <Check size={10} className="text-white" strokeWidth={3} />}
+                                </div>
+                                <span className={`text-xs font-medium transition-colors ${passed ? "text-green-600" : "text-gray-400"}`}>
+                                    {check.label}
+                                </span>
+                            </div>
+                        );
+                    })}
+                </div>
+            </motion.div>
+        )}
+    </AnimatePresence>
+</div>
                                 </div>
                                 {registerError && <p className="text-red-500 text-xs font-bold text-center mt-2 bg-red-50 py-2 rounded-lg">{registerError}</p>}
                                 <button onClick={handleRegisterAndClaim} disabled={loading} className="w-full bg-black hover:bg-zinc-800 text-white py-5 rounded-[2rem] text-sm font-bold shadow-2xl transition-all disabled:opacity-50 flex items-center justify-center gap-2">

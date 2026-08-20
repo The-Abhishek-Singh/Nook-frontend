@@ -123,6 +123,9 @@ const SocialsSection: React.FC<SocialsSectionProps> = ({
     const [activeId, setActiveId] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const pendingApiCalls = useRef<Map<string, NodeJS.Timeout>>(new Map());
+    const BIO_CHAR_LIMIT = 250;
+    const bioCharCount = bio.length;
+    const isBioOverLimit = bioCharCount > BIO_CHAR_LIMIT;
 
     const sensors = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -167,18 +170,19 @@ const SocialsSection: React.FC<SocialsSectionProps> = ({
     };
 
     const handleSaveChanges = async () => {
-        setLoading(true);
-        try {
-            await authApi.updateProfile({
-                profile: { displayName: name, bio: bio }
-            });
-            setLeftSaved(true);
-        } catch (error) {
-            console.error("Save failed:", error);
-        } finally {
-            setLoading(false);
-        }
-    };
+    if (isBioOverLimit) return;
+    setLoading(true);
+    try {
+        await authApi.updateProfile({
+            profile: { displayName: name, bio: bio }
+        });
+        setLeftSaved(true);
+    } catch (error) {
+        console.error("Save failed:", error);
+    } finally {
+        setLoading(false);
+    }
+};
 
     const removeItem = async (id: string) => {
         if (pendingApiCalls.current.has(id)) {
@@ -252,53 +256,113 @@ const SocialsSection: React.FC<SocialsSectionProps> = ({
         }
     };
 
+    // const updateItem = useCallback((id: string, newData: any) => {
+    //     if (pendingApiCalls.current.has(id)) {
+    //         clearTimeout(pendingApiCalls.current.get(id));
+    //         pendingApiCalls.current.delete(id);
+    //     }
+
+    //     // Update UI immediately
+    //     setAddedSocials(prev => prev.map((s) => {
+    //         if (s.id === id) {
+    //             return { ...s, ...newData };
+    //         }
+    //         return s;
+    //     }));
+
+    //     // Debounce API call
+    //     const timer = setTimeout(async () => {
+    //         try {
+    //             let updatePayload: any = {};
+
+    //             if (newData.title !== undefined || newData.description !== undefined) {
+    //                 updatePayload.content = {
+    //                     title: newData.title,
+    //                     description: newData.description
+    //                 };
+    //             }
+
+    //             if (newData.style) {
+    //                 updatePayload.style = newData.style;
+    //             }
+
+    //             if (Object.keys(updatePayload).length > 0) {
+    //                 if (onUpdateBlock) {
+    //                     await onUpdateBlock(id, updatePayload);
+    //                 } else {
+    //                     await blocksApi.updateBlock(id, updatePayload);
+    //                 }
+    //                 console.log(`✅ Block ${id} content updated`);
+    //             }
+    //         } catch (err) {
+    //             console.error(`Failed to update block ${id}:`, err);
+    //         } finally {
+    //             pendingApiCalls.current.delete(id);
+    //         }
+    //     }, 500);
+
+    //     pendingApiCalls.current.set(id, timer);
+    // }, [onUpdateBlock]);
+
+
     const updateItem = useCallback((id: string, newData: any) => {
-        if (pendingApiCalls.current.has(id)) {
-            clearTimeout(pendingApiCalls.current.get(id));
+    if (pendingApiCalls.current.has(id)) {
+        clearTimeout(pendingApiCalls.current.get(id));
+        pendingApiCalls.current.delete(id);
+    }
+
+    // Update UI immediately — merge nested content properly
+    setAddedSocials(prev => prev.map((s) => {
+        if (s.id !== id) return s;
+        const merged = { ...s, ...newData };
+        if (newData.content) {
+            merged.content = { ...s.content, ...newData.content };
+            if (newData.content.location) {
+                merged.location = newData.content.location; // top-level, used by LiveMap
+            }
+        }
+        return merged;
+    }));
+
+    // Debounce API call
+    const timer = setTimeout(async () => {
+        try {
+            const updatePayload: any = {};
+
+            // Pass through ANY content fields given — location, url, title, description, etc.
+            if (newData.content) {
+                updatePayload.content = { ...newData.content };
+            }
+            if (newData.title !== undefined) {
+                updatePayload.content = { ...(updatePayload.content || {}), title: newData.title };
+            }
+            if (newData.description !== undefined) {
+                updatePayload.content = { ...(updatePayload.content || {}), description: newData.description };
+            }
+            if (newData.style) {
+                updatePayload.style = newData.style;
+            }
+            if (newData.logo !== undefined) {
+                updatePayload.logo = newData.logo;
+            }
+
+            if (Object.keys(updatePayload).length > 0) {
+                if (onUpdateBlock) {
+                    await onUpdateBlock(id, updatePayload);
+                } else {
+                    await blocksApi.updateBlock(id, updatePayload);
+                }
+                console.log(`✅ Block ${id} updated`);
+            }
+        } catch (err) {
+            console.error(`Failed to update block ${id}:`, err);
+        } finally {
             pendingApiCalls.current.delete(id);
         }
+    }, 500);
 
-        // Update UI immediately
-        setAddedSocials(prev => prev.map((s) => {
-            if (s.id === id) {
-                return { ...s, ...newData };
-            }
-            return s;
-        }));
-
-        // Debounce API call
-        const timer = setTimeout(async () => {
-            try {
-                let updatePayload: any = {};
-
-                if (newData.title !== undefined || newData.description !== undefined) {
-                    updatePayload.content = {
-                        title: newData.title,
-                        description: newData.description
-                    };
-                }
-
-                if (newData.style) {
-                    updatePayload.style = newData.style;
-                }
-
-                if (Object.keys(updatePayload).length > 0) {
-                    if (onUpdateBlock) {
-                        await onUpdateBlock(id, updatePayload);
-                    } else {
-                        await blocksApi.updateBlock(id, updatePayload);
-                    }
-                    console.log(`✅ Block ${id} content updated`);
-                }
-            } catch (err) {
-                console.error(`Failed to update block ${id}:`, err);
-            } finally {
-                pendingApiCalls.current.delete(id);
-            }
-        }, 500);
-
-        pendingApiCalls.current.set(id, timer);
-    }, [onUpdateBlock]);
+    pendingApiCalls.current.set(id, timer);
+}, [onUpdateBlock]);
 
     useEffect(() => {
         return () => {
@@ -322,11 +386,12 @@ const SocialsSection: React.FC<SocialsSectionProps> = ({
                                 viewMode={viewMode}
                             />
                             <button
-                                onClick={handleSaveChanges} disabled={loading}
-                                className="w-full bg-black text-white py-5 rounded-[2rem] font-bold flex items-center justify-center gap-2 shadow-xl hover:bg-zinc-800 transition-colors"
-                            >
-                                {loading ? <Loader2 className="animate-spin" size={20} /> : "Save Profile Changes"}
-                            </button>
+                             onClick={handleSaveChanges}
+                             disabled={loading || isBioOverLimit}
+                             className="w-full bg-black text-white py-5 rounded-[2rem] font-bold flex items-center justify-center gap-2 shadow-xl hover:bg-zinc-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                         >
+                             {loading ? <Loader2 className="animate-spin" size={20} /> : "Save Profile Changes"}
+                         </button>
                         </motion.div>
                     ) : (
                         <motion.div key="saved" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center lg:items-start space-y-6 pt-4 relative">
@@ -345,7 +410,9 @@ const SocialsSection: React.FC<SocialsSectionProps> = ({
                                 <h1 className={`${viewMode === 'mobile' ? 'text-4xl' : 'text-5xl'} font-black text-gray-900 tracking-tighter leading-none mb-2`}>
                                     {name || "Your Name"}
                                 </h1>
-                                <p className="text-xl text-gray-500 font-medium leading-tight">{bio || "Your Bio"}</p>
+                               <p className="text-xl text-gray-500 font-medium leading-tight break-words whitespace-pre-wrap max-w-full text-justify">
+                                    {bio || "Your Bio"}
+                                </p>
                             </div>
                         </motion.div>
                     )}

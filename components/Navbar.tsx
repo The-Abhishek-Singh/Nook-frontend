@@ -342,7 +342,6 @@ export default function Navbar({
                             ref={scrollRef}
                             className="flex items-center gap-0.5 lg:gap-0.5 overflow-x-auto no-scrollbar min-w-0"
                         >
-
                             <button
                                 ref={linkButtonRef}
                                 onClick={() => setShowLinkPopup(!showLinkPopup)}

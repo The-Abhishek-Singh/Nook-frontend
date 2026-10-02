@@ -1,4 +1,5 @@
 "use client";
+import Image from 'next/image';
 import { ArrowRight, Instagram, Github, Twitter, Linkedin, Youtube } from 'lucide-react';
 import { FloatingIcon } from './FloatingIcon';
 
@@ -16,10 +17,10 @@ export default function HeroSection({ onNext }: { onNext: () => void }) {
 
                 {/* Logo Section */}
                 <div className="flex flex-col items-center mb-10">
-                    <div className="w-16 h-16 bg-black rounded-[1.25rem] flex items-center justify-center mb-4 shadow-2xl transition-transform hover:rotate-12 cursor-pointer">
-                        <div className="w-6 h-6 border-[5px] border-white rounded-sm rotate-45" />
+                    <div className="w-16 h-16 rounded-[1.25rem] overflow-hidden mb-4 shadow-2xl transition-transform hover:rotate-12 cursor-pointer">
+                        <Image src="/Logo/Logo.svg" alt="Nook logo" width={64} height={64} className="h-full w-full" />
                     </div>
-                    <span className="font-bold text-xl tracking-[0.2em] text-gray-900 uppercase">Bento</span>
+                    <span className="font-bold text-xl tracking-[0.2em] text-gray-900 uppercase">Nook</span>
                 </div>
 
                 {/* Headline */}

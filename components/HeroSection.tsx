@@ -16,12 +16,8 @@ export default function HeroSection({ onNext }: { onNext: () => void }) {
             <div className="z-10 flex flex-col items-center text-center max-w-4xl">
 
                 {/* Logo Section */}
-                <div className="flex flex-col items-center mb-10">
-                    <div className="w-16 h-16 rounded-[1.25rem] overflow-hidden mb-4 shadow-2xl transition-transform hover:rotate-12 cursor-pointer">
-                        <Image src="/Logo/Logo.svg" alt="Nook logo" width={64} height={64} className="h-full w-full" />
-                    </div>
-                    <span className="font-bold text-xl tracking-[0.2em] text-gray-900 uppercase">Nook</span>
-                </div>
+           
+
 
                 {/* Headline */}
                 <h1 className="text-5xl md:text-7xl lg:text-8xl font-black text-gray-900 leading-[1.05] tracking-tight mb-8">
